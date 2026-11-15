@@ -1,0 +1,8 @@
+*.lnk
+profiles.json
+profiles-before-*.json
+settings.json
+*.log
+*.bak
+ShortcutBackups/
+*.zip
