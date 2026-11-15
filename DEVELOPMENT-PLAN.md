@@ -1,6 +1,6 @@
 # ProjectShell — Development plan
 
-This document distinguishes existing implementation from the remaining work needed for a reliable **v1.0** release. No Git commit, tag, release, or push is authorized by this document.
+This document distinguishes existing implementation from the remaining work needed for a reliable **v1.0** release.
 
 ## 1. Standalone CLI foundation — implemented, Windows verification in progress
 
