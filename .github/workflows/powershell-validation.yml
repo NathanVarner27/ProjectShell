@@ -12,7 +12,7 @@ jobs:
         shell: [powershell, pwsh]
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Parse and validate (${{ matrix.shell }})
         shell: ${{ matrix.shell }}
         run: ./tests/Test-Source.ps1
