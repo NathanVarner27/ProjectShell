@@ -10,7 +10,7 @@ mkdir -p "$BUILD"
 
 lld-link /lib /def:"$SRC/kernel32.def" /machine:x64 /out:"$BUILD/kernel32.lib"
 lld-link /lib /def:"$SRC/user32.def" /machine:x64 /out:"$BUILD/user32.lib"
-clang-cl --target=x86_64-pc-windows-msvc /nologo /O2 /GS- /Zl /c \
+clang-cl --target=x86_64-pc-windows-msvc /nologo /O2 /GS- /Zl /clang:-fno-builtin /c \
     "/Fo$BUILD/InstallLauncher.obj" "$SRC/InstallLauncher.c"
 lld-link /nologo /nodefaultlib /machine:x64 /subsystem:windows \
     /entry:InstallEntry /manifest:embed \
