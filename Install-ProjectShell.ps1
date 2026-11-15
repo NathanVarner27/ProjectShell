@@ -1,10 +1,57 @@
 ﻿# Installs/updates Project Shell at a stable path, preserving existing profiles.
 # Re-run this installer after extracting the latest ProjectShell.zip.
 [CmdletBinding()]
-param()
+param(
+    # Defaults to D:\DevTools\ProjectShell on computers with D:, otherwise
+    # %LOCALAPPDATA%\Programs\ProjectShell. Can be overridden explicitly.
+    [string]$InstallRoot = '',
+    [switch]$Guided
+)
 $ErrorActionPreference = 'Stop'
 
-$installRoot = 'D:\DevTools\ProjectShell'
+# The EXE uses -Guided to offer a numbered installation-folder choice.
+# Running the .ps1 directly retains the existing default/fallback behavior.
+if ($Guided -and [string]::IsNullOrWhiteSpace($InstallRoot)) {
+    $recommendedRoot = if (Test-Path -LiteralPath 'D:\' -PathType Container) {
+        'D:\DevTools\ProjectShell'
+    }
+    else { Join-Path $env:LOCALAPPDATA 'Programs\ProjectShell' }
+    $localRoot = Join-Path $env:LOCALAPPDATA 'Programs\ProjectShell'
+    Write-Host ''
+    Write-Host 'PROJECT SHELL | INSTALLATION LOCATION' -ForegroundColor Cyan
+    Write-Host ('  1. Recommended: ' + $recommendedRoot)
+    Write-Host ('  2. Local AppData: ' + $localRoot)
+    Write-Host '  3. Type a different installation folder'
+    Write-Host '  0. Cancel installation'
+    do {
+        $locationChoice = (Read-Host 'Number [1]').Trim()
+        if (-not $locationChoice) { $locationChoice = '1' }
+        if ($locationChoice -notin @('0','1','2','3')) {
+            Write-Host 'Choose 0, 1, 2, or 3.' -ForegroundColor Yellow
+        }
+    } while ($locationChoice -notin @('0','1','2','3'))
+    switch ($locationChoice) {
+        '0' { Write-Host 'Installation cancelled.'; return }
+        '1' { $InstallRoot = $recommendedRoot }
+        '2' { $InstallRoot = $localRoot }
+        '3' {
+            $InstallRoot = (Read-Host 'Enter a full installation folder path').Trim().Trim('"')
+            if ([string]::IsNullOrWhiteSpace($InstallRoot) -or -not [IO.Path]::IsPathRooted($InstallRoot)) {
+                throw 'Please enter a nonempty absolute installation folder path.'
+            }
+        }
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
+    if (Test-Path -LiteralPath 'D:\' -PathType Container) {
+        $InstallRoot = 'D:\DevTools\ProjectShell'
+    }
+    else {
+        $InstallRoot = Join-Path $env:LOCALAPPDATA 'Programs\ProjectShell'
+    }
+}
+$installRoot = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($InstallRoot))
 $sourceRoot = $PSScriptRoot
 $sourceProgram = Join-Path $sourceRoot 'ProjectShell.ps1'
 $targetProgram = Join-Path $installRoot 'ProjectShell.ps1'
@@ -15,15 +62,12 @@ $settingsFile = Join-Path $dataRoot 'settings.json'
 if (-not (Test-Path -LiteralPath $sourceProgram -PathType Leaf)) {
     throw 'ProjectShell.ps1 must be next to Install-ProjectShell.ps1.'
 }
-if (-not (Test-Path -LiteralPath 'D:\' -PathType Container)) {
-    throw 'Drive D: was not found. Project Shell was not installed.'
-}
 New-Item -Path $installRoot -ItemType Directory -Force | Out-Null
 New-Item -Path $dataRoot -ItemType Directory -Force | Out-Null
 
-# If the ZIP was extracted directly to D:\DevTools\ProjectShell, do not copy a file onto itself.
+# When source and installation locations match, never copy a file onto itself.
 # If extracted elsewhere, replace just the app/installer/readme at the stable installation path.
-foreach ($fileName in @('ProjectShell.ps1', 'Install-ProjectShell.ps1', 'Diagnose-Launch.ps1', 'README.txt')) {
+foreach ($fileName in @('ProjectShell.ps1', 'Install-ProjectShell.ps1', 'Install-ProjectShell.exe', 'Diagnose-Launch.ps1', 'README.md', 'README.txt')) {
     $from = Join-Path $sourceRoot $fileName
     $to = Join-Path $installRoot $fileName
     if (-not (Test-Path -LiteralPath $from -PathType Leaf)) { continue }

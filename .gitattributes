@@ -1,0 +1,6 @@
+# Keep PowerShell file encodings unchanged (Windows PowerShell 5.1 compatible).
+*.ps1 -text
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf

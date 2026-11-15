@@ -1,8 +1,27 @@
+# Generated desktop shortcuts and local machine state — never commit.
 *.lnk
 profiles.json
-profiles-before-*.json
 settings.json
 *.log
-*.bak
-ShortcutBackups/
+*.tmp
+*backup*.json
+*Backup*.json
+*backup*.lnk
+*Backup*.lnk
 *.zip
+
+# Windows/editor artifacts
+Thumbs.db
+Desktop.ini
+.vs/
+.vscode/
+.idea/
+
+# Python/tool caches (if tests are added later)
+__pycache__/
+.pytest_cache/
+
+# Compiled installer release artifact / temporary object files
+Install-ProjectShell.exe
+native/*.obj
+native/*.lib

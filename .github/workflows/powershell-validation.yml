@@ -1,0 +1,18 @@
+name: PowerShell source validation
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  parse-and-check:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [powershell, pwsh]
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Parse and validate (${{ matrix.shell }})
+        shell: ${{ matrix.shell }}
+        run: ./tests/Test-Source.ps1

@@ -1,7 +1,10 @@
 ﻿# Read-only shortcut and PowerShell elevation diagnostics.
 # Does not change Windows security or Project Shell profiles.
+[CmdletBinding()]
+param([string]$InstallRoot = '')
 $ErrorActionPreference = 'Stop'
-$root = 'D:\DevTools\ProjectShell'
+# By default, diagnose the folder that actually contains this script.
+$root = if ([string]::IsNullOrWhiteSpace($InstallRoot)) { $PSScriptRoot } else { [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($InstallRoot)) }
 $data = Join-Path $env:LOCALAPPDATA 'ProjectShell'
 Write-Host 'PROJECT SHELL | LAUNCH DIAGNOSTICS' -ForegroundColor Cyan
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
