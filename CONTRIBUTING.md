@@ -1,7 +1,5 @@
 # Contributing
 
-Contributions and issue reports can be considered once the repository owner chooses a license and repository policy.
-
 For now, keep changes narrowly scoped and describe which Windows/PowerShell versions you tested. Include a reproduction for shortcut creation, elevation, desktop-folder detection, or project-session errors. Never attach `profiles.json`, real desktop `.lnk` files, or unredacted diagnostics from your personal machine.
 
 Run the validation script on Windows with **both** Windows PowerShell 5.1 and PowerShell 7:
