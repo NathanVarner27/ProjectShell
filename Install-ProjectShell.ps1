@@ -8,6 +8,8 @@ param(
     [switch]$Guided
 )
 $ErrorActionPreference = 'Stop'
+# Use the same recognizable tab title as project sessions.
+try { $Host.UI.RawUI.WindowTitle = 'Project Shell | Installer' } catch { }
 
 # The EXE uses -Guided to offer a numbered installation-folder choice.
 # Running the .ps1 directly retains the existing default/fallback behavior.

@@ -33,4 +33,10 @@ foreach ($check in $checks) {
     if (-not $check.Pass) { throw ('FAIL: ' + $check.Name) }
     Write-Host ('PASS: ' + $check.Name) -ForegroundColor Green
 }
+$nativeInstaller = Get-Content -LiteralPath (Join-Path $root 'native/InstallLauncher.c') -Raw
+if (-not $installer.Contains('RawUI.WindowTitle = ''Project Shell | Installer''') -or
+    -not $nativeInstaller.Contains('si.lpTitle = L"Project Shell | Installer";')) {
+    throw 'FAIL: Project Shell installer title is missing.'
+}
+Write-Host 'PASS: Installer window title' -ForegroundColor Green
 Write-Host 'Source validation completed. Windows desktop/UAC behavior requires separate manual verification.' -ForegroundColor Cyan

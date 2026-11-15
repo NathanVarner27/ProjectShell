@@ -139,6 +139,7 @@ void WINAPI InstallEntry(void) {
     }
 
     si.cb = (DWORD)sizeof(si);
+    si.lpTitle = L"Project Shell | Installer";
     /* A separate normal console is created for numbered installer prompts. */
     if (!CreateProcessW(powershell, command, 0, 0, 0, CREATE_NEW_CONSOLE, 0, 0, &si, &pi)) {
         fail(L"Could not launch the PowerShell installer. Check Windows security settings.", 6);
