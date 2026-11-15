@@ -1,7 +1,5 @@
 # Preparing the v1 source commit manually
 
-This is a proposed source-update workflow, **not** authorization to commit, push, or tag. Use your own existing local Git checkout and remote.
-
 1. Back up your current source and review this candidate package. Do not overwrite a running Project Shell installation or uncommitted edits without checking them first.
 2. Copy the source files from this package into your repository root, including `.github`, `native`, `scripts`, `tests`, README, and development documents. The compiled EXE can be used locally; `.gitignore` intentionally keeps generated executables out of source commits.
 3. Check the actual diff before staging. Run the appropriate PowerShell validation tests and Windows installation/UAC checks before a stable release.
