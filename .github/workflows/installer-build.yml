@@ -7,7 +7,7 @@ jobs:
   build-native-launcher:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install compiler dependencies
         run: sudo apt-get update && sudo apt-get install -y clang lld
       - name: Build Windows x64 installer launcher
