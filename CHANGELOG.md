@@ -1,14 +1,30 @@
 # Changelog
 
-## V1 ProjectShell
+## ProjectShell v1 — Standalone CLI
 
-- Added native Windows x64 `Install-ProjectShell.exe` alongside script-based installation.
-- Embedded `asInvoker` manifest to avoid unintended UAC prompts based on installer file name.
-- Added numbered installation-location selection when started by EXE (`-Guided`).
-- Added native launcher build recipe, structural tests, and CI build workflow.
-- Reused the revised accessibility-first README, GitHub description, and CLI-first development plan.
-- Kept saved profiles and user shortcuts outside repository source control.
-- Created a documented repository layout, Git ignore rules, release checklist, and syntax-validation workflow.
-- Kept the existing profile store separate from source control.
-- Added optional `-InstallRoot` for installations and a user-local fallback on computers without `D:`.
-- Changed the diagnostic script to use its own folder by default (with optional `-InstallRoot`).
+ProjectShell's standalone CLI version brings project shortcuts, saved starting directories, startup commands, and numbered menus together in one PowerShell project manager for Windows.
+
+### Features
+
+- Create labeled shortcuts and separate PowerShell windows for different projects or tasks.
+- Assign project groups, starting folders, and optional startup actions.
+- Choose normal or administrator launches when creating project shortcuts.
+- Use numbered manager and session menus, including `psmenu`, `psrestart`, and `pshome`.
+- Install or update through a guided PowerShell installer, with a choice of installation folder and desktop manager shortcuts.
+- Keep personal project profiles and startup commands in AppData rather than the public repository.
+- Run the included diagnostic script to check shortcut targets and launch permissions.
+
+### Installer and maintenance
+
+- Added a Windows x64 native launcher, `Install-ProjectShell.exe`, that runs alongside `Install-ProjectShell.ps1` rather than replacing it.
+- Added an `asInvoker` manifest to avoid automatically requesting administrator rights based on the installer name.
+- Added an optional `-InstallRoot` setting and a local installation fallback for computers without a `D:` drive.
+- Corrected the native installer build so it does not depend on missing C runtime string functions.
+- Added GitHub Actions checks for Windows PowerShell 5.1 and PowerShell 7, plus a native installer build and artifact upload.
+- Updated the GitHub Actions dependencies for Node.js 24 compatibility.
+
+### Notes
+
+The standalone CLI is the current release. A graphical interface as part of Nathan's Toolkit is planned for later.
+
+The installer is currently unsigned, and building it in GitHub Actions does not replace real Windows desktop testing. See [README.md](README.md) and [native/BUILD.md](native/BUILD.md) for installation and packaging details.
