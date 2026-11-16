@@ -1,21 +1,23 @@
-# ProjectShell — Description & Metadata
+# ProjectShell — Description and metadata
 
-**Short description**
+## Short description
 
-A lightweight PowerShell project launcher that creates reusable shortcuts, opens project directories, manages startup commands, and simplifies switching between development environments through a numbered CLI.
+ProjectShell helps users organize their PowerShell workspace, keep projects separate, and avoid retyping commands every session.
 
-**Expanded description**
+## About ProjectShell
 
-ProjectShell is an accessibility-first Windows PowerShell project manager that keeps multiple development sessions organized without repeating setup commands. Each shortcut can have a recognizable project name and terminal title, its own starting directory, optional startup task, and normal or administrator launch preference. A numbered CLI makes everyday project switching and shortcut maintenance easier to follow.
+ProjectShell is an accessibility-first PowerShell project manager for Windows. When several PowerShell windows are open, it can be difficult to remember which one belongs to which project, especially if you're working on several related projects or different parts of the same application.
 
-**Audience**
+ProjectShell lets you create labeled shortcuts for each project, choose a starting folder, and save the commands you need to run when a session opens. It also includes numbered menus and options for normal or administrator launches.
 
-Windows PowerShell users, beginners, developers managing multiple projects, and people who benefit from consistent, guided workflows—including users with ADHD.
+It's intended for people who benefit from a more guided way to work in PowerShell, including users with ADHD, beginners, and people managing several projects at once.
 
-**Scope**
+## Current version and future plans
 
-Standalone CLI application. Future GUI integration with Nathan's Toolkit/Nathan's Ecosystem is planned, not included in the v1 release candidate.
+ProjectShell is a complete, standalone CLI application. I plan to integrate it into Nathan's Toolkit with a graphical interface as part of the larger Nathan's Ecosystem. The Toolkit GUI isn't included in this release.
 
-**Repository topics**
+Automated PowerShell validation and installer compilation have passed. Windows desktop installation and UAC behavior should still be checked when preparing a downloadable release.
+
+## Repository topics
 
 `powershell`, `windows`, `cli`, `launcher`, `developer-tools`, `shortcuts`, `accessibility`, `project-management`
