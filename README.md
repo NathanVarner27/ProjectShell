@@ -43,9 +43,9 @@ Standard shortcuts use Windows PowerShell 5.1 intentionally. On some computers, 
 
 ## Install or update ProjectShell
 
-1. Download or clone the repository, and extract the complete ZIP if you downloaded one. Use a folder you trust.
+1. Download or clone this repository, or use a complete installer package if one is available under [Releases](https://github.com/NathanVarner27/ProjectShell/releases). Extract the ZIP before installing, and use a folder you trust.
 2. Review the PowerShell scripts (`.ps1`) before running them. ProjectShell creates Windows shortcuts and saves your project settings locally.
-3. On Windows x64, the easiest option is to double-click `Install-ProjectShell.exe` **if it is included in your downloaded package**. Follow the numbered prompts to pick an installation folder and choose whether you want desktop shortcuts.
+3. On Windows x64, the easiest option is to double-click `Install-ProjectShell.exe` **if it is included in your downloaded package**. The GitHub source ZIP does not include a compiled installer. Follow the numbered prompts to pick an installation folder and choose whether you want desktop shortcuts.
 4. If the installer EXE isn't included, or you prefer running the source script, open a regular (not administrator) Windows PowerShell window in the extracted folder and enter:
 
 ```powershell
@@ -107,9 +107,11 @@ If a normal shortcut unexpectedly opens as administrator, close the elevated win
 
 ## Stable release and what's next
 
-**ProjectShell is released as a stable, standalone CLI application.** You can manage your PowerShell projects now without waiting for a graphical interface. If something doesn't work correctly on your computer, check the shortcut settings or use the diagnostic script above. Windows installations and administrator settings can vary, so I still want to hear about problems people run into.
+**ProjectShell is the stable, standalone CLI version of the application.** You can manage your PowerShell projects now without waiting for a graphical interface. If something doesn't work correctly on your computer, check the shortcut settings or use the diagnostic script above. Windows installations and administrator settings can vary, so I still want to hear about problems people run into.
 
-Next, I plan to bring ProjectShell into Nathan's Toolkit as part of the larger Nathan's Ecosystem. That version will have a graphical interface. For now, this release is CLI-only.
+Automated source checks pass under Windows PowerShell 5.1 and PowerShell 7, and the Windows x64 installer builds successfully. Those checks do not replace trying installation, shortcuts, and UAC on an actual Windows desktop.
+
+Next, I plan to bring ProjectShell into Nathan's Toolkit as part of the larger Nathan's Ecosystem. That version will have a graphical interface. For now, ProjectShell is CLI-only.
 
 ## Technologies and acknowledgments
 
