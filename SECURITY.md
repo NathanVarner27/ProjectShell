@@ -1,11 +1,21 @@
-# Security notes
+# Security
 
-Project Shell creates Windows `.lnk` files and can run **user-selected PowerShell commands or scripts**. Treat those saved startup actions as executable code. Only save commands you trust.
+ProjectShell creates Windows shortcuts and can run PowerShell commands or scripts that you choose for your projects. Saved startup commands are still executable code, so only use commands and files you trust.
 
-- **Admin: No:** starts through Windows PowerShell 5.1 in standard mode; the application blocks automatic startup tasks if the process is unexpectedly elevated. This cannot change privileges on an already elevated parent process.
-- **Admin: Yes:** deliberately requests Windows UAC. Never approve elevation for an unfamiliar script or executable.
-- **Installer:** overwrites application scripts and rebuilds its own shortcuts in the selected installation directory. It preserves profiles in AppData.
-- **Privacy:** Project Shell is local. Profiles can contain personal paths or commands; do not include those files in bug reports or public commits. Redact usernames and sensitive paths from diagnostic output before sharing.
-- **Execution policy:** The app uses process-local `-ExecutionPolicy Bypass` when launching `.ps1` files. This is not a security boundary. It does not modify organization policies or Windows UAC settings.
+## Launch permissions
 
-For a security issue, avoid posting secrets in a public GitHub issue. Contact the repository owner privately using a contact method they publish when the repository is created.
+- **Admin: No** uses standard Windows PowerShell 5.1 for normal project sessions. If a session unexpectedly starts elevated, ProjectShell is designed to skip its automatic startup task. A shortcut cannot remove administrator privileges from a process that is already elevated.
+- **Admin: Yes** requests Windows administrator access through UAC. Only approve that request when the task needs it and you trust the commands being run.
+- The guided installer uses a standard-user launch. The installer can update application scripts and rebuild its own shortcuts in the selected folder, while keeping saved profiles in AppData.
+
+## Local data and execution policy
+
+ProjectShell works with local project settings. Profiles may contain personal folder names and user-defined commands. Do not upload profiles, settings, backups, desktop shortcuts, or unredacted diagnostics to GitHub.
+
+ProjectShell uses process-local `-ExecutionPolicy Bypass` to run its PowerShell scripts. This does not change your computer's system-wide execution policy or disable Windows UAC. It also does not make an untrusted script safe.
+
+The Windows installer executable is unsigned and may trigger a SmartScreen warning. Check that you obtained it from a source you trust, and review the scripts before running them.
+
+## Reporting a security issue
+
+If you find a security issue, **do not include passwords, tokens, private paths, or personal files in a public GitHub Issue**. Use a private reporting option if one is available on the repository. If no private contact method is listed, open a public issue with only a general description and ask for a safe way to share the details.
