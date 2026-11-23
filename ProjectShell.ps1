@@ -325,6 +325,7 @@ function Read-Startup($entry) {
     Write-Host '  1. Open the folder and show a PowerShell prompt [recommended]'
     Write-Host '  2. Run a local .ps1 file (can rerun later)'
     Write-Host '  3. Run a PowerShell command (can rerun later)'
+    Write-Host '  4. Launch saved main tool automatically on shortcut open'
     while ($true) {
         $pick = (Read-Host 'Number').Trim()
         switch ($pick) {
@@ -348,7 +349,16 @@ function Read-Startup($entry) {
                 $entry.StartupValue = $value
                 return
             }
-            default { Write-Host 'Choose 1, 2, or 3.' -ForegroundColor Yellow }
+            '4' {
+                if (-not (Get-ProfileLaunchable $entry)) {
+                    Write-Host 'Locate a main tool for this shortcut/workspace first.' -ForegroundColor Yellow
+                    continue
+                }
+                $entry.StartupMode = 'MainTool'
+                $entry.StartupValue = ''
+                return
+            }
+            default { Write-Host 'Choose 1, 2, 3, or 4.' -ForegroundColor Yellow }
         }
     }
 }
@@ -390,6 +400,8 @@ function Write-ProfileSummary($entry) {
     Write-Host ("Name:          " + $entry.Name)
     Write-Host ("Project group: " + $entry.Group)
     Write-Host ("Start folder:  " + $entry.StartDirectory)
+    $mainTool = Get-ProfileLaunchable $entry
+    Write-Host ("Main tool:     " + $(if ($mainTool) { $mainTool } else { '(not configured)' }))
     Write-Host ("On launch:     " + $entry.StartupMode)
     if ($entry.StartupValue) { Write-Host ("Task:          " + $entry.StartupValue) }
     Write-Host ("Administrator: " + $(if ($entry.Admin) { 'Yes (UAC prompt)' } else { 'No' }))
@@ -399,22 +411,22 @@ function Write-ProfileSummary($entry) {
     Write-Host ''
 }
 
-function New-Profile([object[]]$Profiles, $CopyFrom = $null) {
+function New-Profile([object[]]$Profiles, $CopyFrom = $null, [string]$WorkspaceFolder = '', [string]$WorkspaceName = '', [string]$WorkspaceId = '') {
     $copy = ($null -ne $CopyFrom)
     if ($copy) {
         Write-Host "Creating an alternate for: $($CopyFrom.Name)" -ForegroundColor Cyan
     }
     else { Write-Host 'CREATE A DESKTOP PROJECT SHORTCUT' -ForegroundColor Cyan }
 
-    $groupDefault = if ($copy) { [string]$CopyFrom.Group } else { '' }
-    $nameDefault = if ($copy) { "$($CopyFrom.Name) - Alt" } else { '' }
+    $groupDefault = if ($copy) { [string]$CopyFrom.Group } elseif ($WorkspaceName) { $WorkspaceName } else { '' }
+    $nameDefault = if ($copy) { "$($CopyFrom.Name) - Alt" } elseif ($WorkspaceName) { $WorkspaceName } else { '' }
     $group = Read-Required 'Project group (e.g., UGA or COA)' $groupDefault
     $name = Read-Required 'Shortcut name AND terminal header' $nameDefault
     if (@($Profiles | Where-Object { $_.Name -ieq $name }).Count -gt 0) {
         Write-Host 'This title already exists. Give each shortcut a unique title.' -ForegroundColor Yellow
         return $Profiles
     }
-    $dirDefault = if ($copy) { [string]$CopyFrom.StartDirectory } else { '' }
+    $dirDefault = if ($copy) { [string]$CopyFrom.StartDirectory } elseif ($WorkspaceFolder) { $WorkspaceFolder } else { '' }
     $dir = Read-Folder $dirDefault
     if (-not $dir) {
         Write-Host 'Shortcut creation cancelled. No changes saved.' -ForegroundColor Yellow
@@ -429,6 +441,8 @@ function New-Profile([object[]]$Profiles, $CopyFrom = $null) {
         StartupValue = ''
         Admin = $false
         Terminal = 'Console'
+        MainLaunchable = $(if ($copy) { [string]$CopyFrom.MainLaunchable } else { '' })
+        WorkspaceId = $(if ($copy) { [string]$CopyFrom.WorkspaceId } else { $WorkspaceId })
         ShortcutFile = ''
     }
     Read-Startup $entry
@@ -490,7 +504,7 @@ function Edit-Profile([object[]]$Profiles, $entry) {
     $oldLink = Profile-LinkPath $entry
     while ($true) {
         Write-ProfileSummary $entry
-        Write-Host 'EDIT: 1 Name/title  2 Group  3 Folder  4 Startup action  5 Admin  6 Terminal  0 Save and back'
+        Write-Host 'EDIT: 1 Name/title  2 Group  3 Folder  4 Startup action  5 Admin  6 Terminal  7 Main launchable  0 Save and back'
         $pick = (Read-Host 'Number').Trim()
         switch ($pick) {
             '1' {
@@ -517,6 +531,7 @@ function Edit-Profile([object[]]$Profiles, $entry) {
                 }
                 else { $entry.Terminal = Read-Terminal $entry.Terminal }
             }
+            '7' { Set-ProfileLaunchable $entry }
             '0' {
                 if ($oldLink -ne (Profile-LinkPath $entry) -and (Test-Path -LiteralPath $oldLink)) {
                     Remove-Item -LiteralPath $oldLink -Force
@@ -761,6 +776,11 @@ function Show-LauncherAudit {
     finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) }
 }
 
+# Workspace module is kept separate so the original shortcut and UAC machinery remains intact.
+$script:WorkspaceModule = Join-Path (Split-Path -Path $script:ProgramPath -Parent) 'ProjectShell.Workspaces.ps1'
+if (-not (Test-Path -LiteralPath $script:WorkspaceModule -PathType Leaf)) { throw 'Missing ProjectShell.Workspaces.ps1; rerun Install-ProjectShell.ps1.' }
+. $script:WorkspaceModule
+
 function Show-Manager {
     while ($true) {
         $profiles = @(Read-Store)
@@ -784,6 +804,8 @@ function Show-Manager {
         Write-Host ' 10. Diagnose a project shortcut'
         Write-Host ' 11. Locate / repair Manager desktop shortcut'
         Write-Host ' 12. Audit project shortcut elevation settings'
+        Write-Host ' 13. DevTools folder and saved workspace/tool lookups'
+        Write-Host ' 14. Set primary launchable for a shortcut'
         Write-Host '  0. Exit manager'
         $choice = (Read-Host 'Number').Trim()
         try {
@@ -830,6 +852,11 @@ function Show-Manager {
                 }
                 '11' { Show-ManagerDesktopShortcut }
                 '12' { Show-LauncherAudit }
+                '13' { Show-WorkspaceToolsMenu }
+                '14' {
+                    $selected = Select-Profile $profiles 'Set launchable for shortcut number'
+                    if ($null -ne $selected) { Set-ProfileLaunchable $selected }
+                }
                 '0' { return }
                 default { Write-Host 'Choose a listed number.' -ForegroundColor Yellow }
             }
@@ -884,7 +911,7 @@ function Invoke-ProjectTask($entry) {
     if ($elevated -and -not [bool]$entry.Admin) {
         Write-Host 'WARNING: standard profile opened in an elevated process.' -ForegroundColor Yellow
         Write-Host 'Close this window and launch the shortcut from a normal desktop session.' -ForegroundColor Yellow
-        if ([string]$entry.StartupMode -in @('Script','Command')) {
+        if ([string]$entry.StartupMode -in @('Script','Command','MainTool')) {
             Write-Host 'Automatic startup task skipped to avoid unintended administrator execution.' -ForegroundColor Yellow
             return
         }
@@ -901,6 +928,7 @@ function Invoke-ProjectTask($entry) {
                 else { & $entry.StartupValue }
             }
             'Command' { & ([scriptblock]::Create([string]$entry.StartupValue)) }
+            'MainTool' { Start-ProfileLaunchable $entry }
             default { Write-Host 'Unknown startup mode. Nothing was executed.' -ForegroundColor Yellow }
         }
     }
@@ -919,6 +947,9 @@ function Show-OpenProjectMenu([string]$Id) {
         Write-Host '  3. Open alternate shortcut from this project group'
         Write-Host '  4. Show project settings'
         Write-Host '  5. Return to user profile (home folder)'
+        Write-Host '  6. Launch saved primary tool'
+        Write-Host '  7. Set/change this shortcut main launchable'
+        Write-Host '  8. DevTools folder and saved tool lookups'
         Write-Host '  0. Return to PowerShell prompt'
         $answer = (Read-Host 'Number').Trim()
         try {
@@ -931,6 +962,9 @@ function Show-OpenProjectMenu([string]$Id) {
                     if ($null -ne $selected) { Start-Profile $selected }
                 }
                 '4' { Write-ProfileSummary $entry }
+                '6' { Start-ProfileLaunchable $entry }
+                '7' { Set-ProfileLaunchable $entry }
+                '8' { Show-WorkspaceToolsMenu }
                 '5' {
                     Enter-UserProfileFolder
                     # Leave the project menu so the user can enter regular commands.

@@ -24,6 +24,7 @@ jobs:
             Install-ProjectShell.exe \
             Install-ProjectShell.ps1 \
             ProjectShell.ps1 \
+            ProjectShell.Workspaces.ps1 \
             Diagnose-Launch.ps1 \
             README.md \
             LICENSE
@@ -33,6 +34,7 @@ jobs:
               'Install-ProjectShell.exe',
               'Install-ProjectShell.ps1',
               'ProjectShell.ps1',
+              'ProjectShell.Workspaces.ps1',
               'Diagnose-Launch.ps1',
               'README.md',
               'LICENSE',
