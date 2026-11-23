@@ -369,6 +369,72 @@ function Undo-ProjectNameTransition($Record,[string]$Confirmation) {
     Write-Host ('ProjectShell metadata restored from: ' + $Record.Folder) -ForegroundColor Green
 }
 
+function Find-ProjectNameTransitionReferences([string]$ProjectRoot,[string]$OldName,[string]$NewName) {
+    Assert-ProjectNameTransitionName $OldName
+    Assert-ProjectNameTransitionName $NewName
+    if (-not (Test-Path -LiteralPath $ProjectRoot -PathType Container)) {
+        throw 'Select an existing project folder for the read-only inventory.'
+    }
+    $root = [IO.Path]::GetFullPath($ProjectRoot)
+    if ($root.TrimEnd('\') -eq [IO.Path]::GetPathRoot($root).TrimEnd('\')) {
+        throw 'Choose a specific project folder, not an entire drive.'
+    }
+    if ((Get-Item -LiteralPath $root -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        throw 'Do not select a symlink or junction root.'
+    }
+    $ignoredFolders = @('.git','.venv','venv','node_modules','.tox','__pycache__','.vs','.idea','.pytest_cache','dist','build')
+    $allowedExtensions = @('.ps1','.psm1','.psd1','.py','.json','.md','.txt','.yml','.yaml','.toml','.ini','.cfg','.xml','.cs','.c','.h','.js','.ts','.tsx','.jsx','.cmd','.bat','.spec','.wxs','.iss')
+    $toVisit = [System.Collections.Generic.Queue[string]]::new()
+    $toVisit.Enqueue($root)
+    $findings = [System.Collections.Generic.List[object]]::new()
+    $scanned = 0; $skipped = 0; $entries = 0
+    while ($toVisit.Count -gt 0) {
+        $dir = $toVisit.Dequeue()
+        foreach ($item in (Get-ChildItem -LiteralPath $dir -Force -ErrorAction Stop)) {
+            $entries++
+            if ($entries -gt 3000) { throw 'Inventory limit reached (3000 entries). Narrow the source folder before scanning.' }
+            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { $skipped++; continue }
+            if ($item.PSIsContainer) {
+                if ($item.Name -in $ignoredFolders) { $skipped++; continue }
+                $toVisit.Enqueue($item.FullName)
+                continue
+            }
+            $fileOld = $item.Name.IndexOf($OldName,[StringComparison]::OrdinalIgnoreCase) -ge 0
+            $fileNew = $item.Name.IndexOf($NewName,[StringComparison]::OrdinalIgnoreCase) -ge 0
+            $contentOld = 0; $contentNew = 0
+            $scanContent = ([IO.Path]::GetExtension($item.Name).ToLowerInvariant() -in $allowedExtensions) -and
+                ($item.Length -le 262144) -and ($item.Name -notmatch '(?i)(password|secret|token|credential|\.env)')
+            if ($scanContent) {
+                try {
+                    $content = Get-Content -LiteralPath $item.FullName -Raw -Encoding UTF8 -ErrorAction Stop
+                    $contentOld = [regex]::Matches($content,[regex]::Escape($OldName),[Text.RegularExpressions.RegexOptions]::IgnoreCase).Count
+                    $contentNew = [regex]::Matches($content,[regex]::Escape($NewName),[Text.RegularExpressions.RegexOptions]::IgnoreCase).Count
+                    $scanned++
+                }
+                catch { $skipped++ }
+            } else { $skipped++ }
+            if ($fileOld -or $fileNew -or $contentOld -or $contentNew) {
+                $findings.Add([pscustomobject]@{
+                    RelativePath=$item.FullName.Substring($root.TrimEnd('\').Length).TrimStart('\')
+                    OldNameInFileName=$fileOld
+                    NewNameInFileName=$fileNew
+                    OldNameTextMatches=$contentOld
+                    NewNameTextMatches=$contentNew
+                })
+            }
+        }
+    }
+    return [pscustomobject]@{
+        ProjectRoot=$root
+        OldName=$OldName
+        NewName=$NewName
+        TextFilesInspected=$scanned
+        ItemsSkipped=$skipped
+        NameReferences=@($findings.ToArray())
+        ExternalIdentityVerified=$false
+    }
+}
+
 function Show-ProjectNameTransitionMenu {
     $plan = $null
     while ($true) {
@@ -378,6 +444,7 @@ function Show-ProjectNameTransitionMenu {
         Write-Host '  2. Apply only ProjectShell-managed names (backup + exact approval)'
         Write-Host '  3. Verify latest ProjectShell-managed transition'
         Write-Host '  4. Roll back latest transition (only if no later changes)'
+        Write-Host '  5. Inventory a selected app folder for old/new name references (read-only)'
         Write-Host '  0. Back'
         $choice = (Read-Host 'Number').Trim()
         try {
@@ -415,6 +482,20 @@ function Show-ProjectNameTransitionMenu {
                     if (-not (Read-YesNo 'Restore the saved ProjectShell metadata and links?' $false)) { continue }
                     $typed = Read-Host ('Type ROLLBACK ' + $latest.Receipt.Id)
                     Undo-ProjectNameTransition $latest $typed
+                }
+                '5' {
+                    $old = if ($plan) { $plan.PreviousName } else { (Read-Host 'Existing application name').Trim() }
+                    $next = if ($plan) { $plan.ProposedName } else { (Read-Host 'Proposed application name').Trim() }
+                    $folder = (Read-Host 'Application source folder (full path; no changes)').Trim().Trim('"')
+                    $result = Find-ProjectNameTransitionReferences $folder $old $next
+                    Write-Host ('Text files inspected: ' + $result.TextFilesInspected)
+                    Write-Host ('Skipped entries: ' + $result.ItemsSkipped)
+                    Write-Host ('Files with old/new name references: ' + @($result.NameReferences).Count)
+                    foreach ($item in $result.NameReferences) {
+                        Write-Host ('  ' + $item.RelativePath + ' | old: ' + $item.OldNameTextMatches + ' | new: ' + $item.NewNameTextMatches)
+                    }
+                    Write-Host 'Inventory is bounded, read-only and incomplete for binaries, installers, GitHub or ignored folders.' -ForegroundColor Yellow
+                    Write-Host 'A full renaming transition still requires manual acceptance.'
                 }
                 '0' { return }
                 default { Write-Host 'Choose a listed number.' -ForegroundColor Yellow }
