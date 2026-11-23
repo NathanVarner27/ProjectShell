@@ -167,6 +167,23 @@ function Get-LaunchableCandidates([string]$Folder) {
     return @($found.ToArray())
 }
 
+function Browse-ToolFile([string]$Kind) {
+    $dialog = $null
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        $dialog = New-Object System.Windows.Forms.OpenFileDialog
+        $dialog.Title = 'Locate ' + $Kind + ' file'
+        $dialog.Filter = 'Executable and script files|*.exe;*.msi;*.ps1;*.cmd;*.bat;*.py;*.js;*.jar|All files|*.*'
+        $dialog.CheckFileExists = $true
+        if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { return [string]$dialog.FileName }
+    }
+    catch {
+        Write-Host ('File picker unavailable; paste the path instead: ' + $_.Exception.Message) -ForegroundColor Yellow
+    }
+    finally { if ($dialog) { $dialog.Dispose() } }
+    return $null
+}
+
 function Read-ToolTarget([string]$Base, [string]$Kind, [string]$Current='') {
     $extensions = if ($Kind -eq 'installer') { @('.exe','.msi','.ps1','.cmd','.bat') }
         else { @('.exe','.ps1','.cmd','.bat','.py','.js','.jar') }
@@ -176,13 +193,18 @@ function Read-ToolTarget([string]$Base, [string]$Kind, [string]$Current='') {
         if ($Current) { Write-Host ('Current: ' + $Current) }
         $options = if ($Kind -eq 'installer') { @() } else { @(Get-LaunchableCandidates $Base) }
         for ($i=0; $i -lt $options.Count; $i++) { Write-Host ("  {0}. {1}" -f ($i+1),$options[$i]) }
-        Write-Host '  90. Enter/browse by full or workspace-relative file path'
-        Write-Host '  91. Clear saved selection'
+        Write-Host '  90. Browse using the Windows file picker'
+        Write-Host '  91. Type/paste an absolute or workspace-relative file path'
+        Write-Host '  92. Clear saved selection'
         Write-Host '   0. Cancel'
         $choice = (Read-Host 'Number').Trim()
         if ($choice -eq '0') { return $null }
-        if ($choice -eq '91') { return '' }
-        if ($choice -eq '90') { $typed = (Read-Host 'File path').Trim() }
+        if ($choice -eq '92') { return '' }
+        if ($choice -eq '90') {
+            $typed = Browse-ToolFile $Kind
+            if (-not $typed) { continue }
+        }
+        elseif ($choice -eq '91') { $typed = (Read-Host 'File path').Trim() }
         else {
             $n = 0
             if (-not [int]::TryParse($choice,[ref]$n) -or $n -lt 1 -or $n -gt $options.Count) {
@@ -244,14 +266,16 @@ function New-DevWorkspace {
         throw 'Use a simple safe folder name (letters, digits, spaces, dots, underscores, hyphens).'
     }
     $destination = Join-Path $root $name
-    if (Test-Path -LiteralPath $destination) { throw 'Destination already exists. No overwrite is allowed.' }
     if (@($data.Workspaces | Where-Object { $_.Name -ieq $name }).Count -gt 0) { throw 'Duplicate workspace name.' }
     Write-Host '  1. Create an empty workspace'
     Write-Host '  2. Copy/move an existing folder into workspace'
     Write-Host '  3. Import a ZIP, RAR, or 7Z archive'
+    Write-Host '  4. Register an existing folder under DevTools (leave files in place)'
     Write-Host '  0. Cancel'
     $mode = (Read-Host 'Number').Trim()
-    if ($mode -notin @('1','2','3')) { return }
+    if ($mode -notin @('1','2','3','4')) { return }
+    if ($mode -eq '4' -and -not (Test-Path -LiteralPath $destination -PathType Container)) { throw 'Existing workspace folder not found under DevTools root.' }
+    if ($mode -ne '4' -and (Test-Path -LiteralPath $destination)) { throw 'Destination already exists. No overwrite is allowed.' }
     $source = ''
     if ($mode -eq '2') {
         $source = Read-Folder
@@ -259,7 +283,7 @@ function New-DevWorkspace {
         $source = ConvertTo-WorkspacePath $source
         if ((Get-Item -LiteralPath $source).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Cannot import a linked folder.' }
         if ($source.TrimEnd('\') -ieq [IO.Path]::GetPathRoot($source).TrimEnd('\')) { throw 'Cannot import a drive root.' }
-        foreach ($protected in @($env:SystemRoot,$env:ProgramFiles,[Environment]::GetEnvironmentVariable('ProgramFiles(x86)'),$script:AppRoot)) {
+        foreach ($protected in @($env:SystemRoot,$env:ProgramFiles,[Environment]::GetEnvironmentVariable('ProgramFiles(x86)'),$script:AppRoot,$env:USERPROFILE,$env:LOCALAPPDATA,$env:APPDATA,(Split-Path -Path $script:ProgramPath -Parent))) {
             if ($protected -and (Test-PathUnder $source $protected)) { throw 'Cannot import system/application data directories.' }
         }
         $links = @(Get-ChildItem -LiteralPath $source -Recurse -Force | Where-Object {
@@ -291,7 +315,7 @@ function New-DevWorkspace {
     if (-not (Read-YesNo 'Create/import now?' $true)) { return }
     $stage = Join-Path $root ('.ps-import-' + [guid]::NewGuid().ToString('N'))
     try {
-        New-Item -ItemType Directory -Path $stage -ErrorAction Stop | Out-Null
+        if ($mode -ne '4') { New-Item -ItemType Directory -Path $stage -ErrorAction Stop | Out-Null }
         if ($mode -eq '2') {
             foreach ($file in @(Get-ChildItem -LiteralPath $source -Force -ErrorAction Stop)) {
                 Copy-Item -LiteralPath $file.FullName -Destination $stage -Recurse -Force -ErrorAction Stop
@@ -308,7 +332,7 @@ function New-DevWorkspace {
                 throw 'Archive checksum mismatch; original retained.'
             }
         }
-        Move-Item -LiteralPath $stage -Destination $destination -ErrorAction Stop
+        if ($mode -ne '4') { Move-Item -LiteralPath $stage -Destination $destination -ErrorAction Stop }
     }
     finally {
         if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue }
