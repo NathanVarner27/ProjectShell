@@ -128,6 +128,18 @@ try {
     $refused = $false
     try { $null = Invoke-ProjectNameTransition $stale ('RENAME ' + $old) } catch { $refused = $true }
     Assert $refused 'Stale plan refuses overwriting user edits'
+    # One explicitly supplied legacy alias can be mapped in the same reviewed plan.
+    $saved[2].Group = 'UGA'
+    Save-Store $saved
+    $aliasPlan = New-ProjectNameTransitionPlan $old $new 'GPB' 'DBP'
+    Assert (@($aliasPlan.ProfileChanges).Count -eq 2) 'Explicit GPB alias is included in the pilot preview'
+    $aliasReceipt = Invoke-ProjectNameTransition $aliasPlan ('RENAME ' + $old)
+    $testingProfile = @((Read-Store) | Where-Object { $_.Id -eq 'gpb-test' })[0]
+    Assert ($testingProfile.Group -eq 'DBP') 'Only explicitly mapped legacy short name changes'
+    Assert ((@((Read-Store) | Where-Object { $_.Id -eq 'other' })[0].Group -eq 'UGA')) 'Unrelated short name is preserved'
+    $aliasLatest = Get-ProjectNameTransitionLatest
+    Undo-ProjectNameTransition $aliasLatest ('ROLLBACK ' + $aliasReceipt.Id)
+    Assert ((Get-ProjectNameTransitionHash $script:StorePath) -eq $beforeProfile) 'Alias test rollback also restores all original settings'
     Write-Host 'PROJECTSHELL_NAME_MIGRATION_PILOT_TESTS_PASSED' -ForegroundColor Green
 }
 finally {
