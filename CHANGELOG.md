@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased — ProjectShell v1.2.0 preview: Catalogue dependency handoff
+## Unreleased — ProjectShell v1.2.0 preview: Catalogue and migration
+
+- Added guided application name transition planning in Manager (16), project sessions (10) and workspace menu (9).
+- Added exact-confirmation changes to ProjectShell-owned profile/workspace labels and desktop shortcuts, with local snapshots, post-change checks and conservative rollback.
+- Added isolated GitHub Package Builder naming pilot fixtures; no rename of the real builder or automated repository/filesystem changes.
+- Documented full software identity checklist for source, installer, ZIP/EXE/MSIX, GitHub distribution, legacy users and migration verification.
+
+### Existing Catalogue dependency handoff
 
 - Added optional, preview-only Nathan's Catalogue Dependency Broker v1 integration using the alpha.13 structured JSON contract.
 - Added read-only dependency detection for 7-Zip, Windows Sandbox, WinGet and Chocolatey, with independent operation when Catalogue is missing.
