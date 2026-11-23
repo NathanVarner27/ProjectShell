@@ -18,7 +18,7 @@ try {
     $project = Join-Path $temp 'GitHubPackageBuilder'
     $script:NameMigrationRoot = Join-Path $script:AppRoot 'name-migrations'
     New-Item -Path $script:Desktop,$script:AppRoot,$project -ItemType Directory -Force | Out-Null
-    Set-Content -LiteralPath (Join-Path $project 'package_config.json') -Value '{"app_name":"GitHub Package Builder"}'
+    Set-Content -LiteralPath (Join-Path $project 'package_config.json') -Value '{"app_name":"GitHub Package Builder"}' -Encoding UTF8
     $sourceHash = (Get-FileHash (Join-Path $project 'package_config.json') -Algorithm SHA256).Hash
 
     function Ensure-Store {
@@ -84,6 +84,13 @@ try {
     Assert ((Get-ProjectNameTransitionHash $script:StorePath) -eq $beforeProfile) 'Preview does not change existing profiles'
     Assert ((Get-ProjectNameTransitionHash $script:WorkspaceStorePath) -eq $beforeWorkspace) 'Preview does not change workspace registry'
     Assert (-not (Test-Path -LiteralPath $script:NameMigrationRoot)) 'Preview creates no migration backup or receipt'
+    $inventory = Find-ProjectNameTransitionReferences $project $old $new
+    Assert ($inventory.TextFilesInspected -ge 1) 'Bounded read-only file inventory checks text sources'
+    Assert (@($inventory.NameReferences | Where-Object { $_.RelativePath -eq 'package_config.json' -and $_.OldNameTextMatches -ge 1 }).Count -eq 1) 'Old GPB identity is located for external migration'
+    Assert (-not $inventory.ExternalIdentityVerified) 'Inventory does not certify the entire software identity'
+    $wholeDrive = $false
+    try { $null = Find-ProjectNameTransitionReferences ([IO.Path]::GetPathRoot($project)) $old $new } catch { $wholeDrive = $true }
+    Assert $wholeDrive 'Drive-wide inventory is blocked'
     Assert ((Get-FileHash (Join-Path $project 'package_config.json') -Algorithm SHA256).Hash -eq $sourceHash) 'Preview preserves external application contents'
 
     $rejected = $false
