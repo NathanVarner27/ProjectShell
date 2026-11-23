@@ -84,3 +84,25 @@ jobs:
             ProjectShell-v1.1.0-Windows-x64.zip
             SHA256SUMS.txt
           if-no-files-found: error
+
+  verify-windows-release-zip:
+    needs: build-native-launcher
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v6
+        with:
+          name: ProjectShell-v1.1.0-release-unsigned
+          path: release-assets
+      - name: Verify ZIP integrity, PE and committed source equivalence
+        shell: pwsh
+        run: |
+          python tests/verify_windows_installer_package.py --zip "release-assets/ProjectShell-v1.1.0-Windows-x64.zip" --source .
+          if ($LASTEXITCODE -ne 0) { throw 'Windows release package verification failed.' }
+      - name: Test extracted package in an isolated Windows installation
+        shell: pwsh
+        run: |
+          ./tests/Test-Installer-Sandbox.ps1 -ZipPath "release-assets/ProjectShell-v1.1.0-Windows-x64.zip"
