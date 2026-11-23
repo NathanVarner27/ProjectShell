@@ -66,18 +66,18 @@ Standard shortcuts use Windows PowerShell 5.1 intentionally. On some computers, 
 
 Download an official complete Windows package from [GitHub Releases](https://github.com/NathanVarner27/ProjectShell/releases), or clone/download the source repository. Extract a ZIP to a folder you trust before running anything; review scripts if you are unsure about a download.
 
-The **repository-built** \`Install-ProjectShell.exe\` is a launcher, **not a self-contained installer**. It must be kept in the same extracted folder as \`Install-ProjectShell.ps1\`, \`ProjectShell.ps1\`, \`ProjectShell.Workspaces.ps1\`, and \`Diagnose-Launch.ps1\`. The repository source ZIP does not include the compiled EXE. Only use a single-file standalone installer if it is explicitly published and verified as such in an official release.
+The **repository-built** `Install-ProjectShell.exe` is a launcher, **not a self-contained installer**. It must be kept in the same extracted folder as `Install-ProjectShell.ps1`, `ProjectShell.ps1`, `ProjectShell.Workspaces.ps1`, and `Diagnose-Launch.ps1`. The repository source ZIP does not include the compiled EXE. Only use a single-file standalone installer if it is explicitly published and verified as such in an official release.
 
 Requirements: Windows 10/11, Windows PowerShell 5.1, a writable installation folder, and an interactive Windows desktop. The installer works as a standard user when installing into a user-writable folder.
 
 ### Guided installation settings
 
-Double-click \`Install-ProjectShell.exe\` in the **extracted complete package**, or start the guided PowerShell script using \`-Guided\`. The numbered prompts are:
+Double-click `Install-ProjectShell.exe` in the **extracted complete package**, or start the guided PowerShell script using `-Guided`. The numbered prompts are:
 
 | Prompt | Choice | What it does |
 | --- | --- | --- |
-| Installation location | **1 — Recommended** (default) | Uses \`D:\DevTools\ProjectShell\` if \`D:\` exists; otherwise uses \`%LOCALAPPDATA%\Programs\ProjectShell\`. |
-| Installation location | **2 — Local AppData** | Always uses \`%LOCALAPPDATA%\Programs\ProjectShell\`. |
+| Installation location | **1 — Recommended** (default) | Uses `D:\DevTools\ProjectShell` if `D:` exists; otherwise uses `%LOCALAPPDATA%\Programs\ProjectShell`. |
+| Installation location | **2 — Local AppData** | Always uses `%LOCALAPPDATA%\Programs\ProjectShell`. |
 | Installation location | **3 — Custom path** | Enter a full, absolute path to a writable folder. |
 | Installation location | **0 — Cancel** | Stops installation. |
 | Desktop manager shortcuts | **1 — Normal only** (default) | Creates/updates the regular manager shortcut on your selected desktop. |
@@ -95,33 +95,33 @@ For existing profiles, the installer refreshes saved project shortcuts and may a
 
 If the EXE is not included, run the script from the extracted folder in a **regular, non-administrator PowerShell** window:
 
-\`\`\`powershell
+```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\Install-ProjectShell.ps1" -Guided
-\`\`\`
+```
 
 For an unattended *location choice only* (other prompts remain interactive), specify an install path:
 
-\`\`\`powershell
+```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\Install-ProjectShell.ps1" -InstallRoot "C:\Tools\ProjectShell"
-\`\`\`
+```
 
-\`-ExecutionPolicy Bypass\` is scoped to the launched PowerShell process. It does not change system-wide execution policy or disable UAC. Run scripts and launchables only from sources you trust.
+`-ExecutionPolicy Bypass` is scoped to the launched PowerShell process. It does not change system-wide execution policy or disable UAC. Run scripts and launchables only from sources you trust.
 
 ### Update without losing settings
 
-Extract the newer official package, run its installer, and choose the **same installation folder** you used previously. ProjectShell updates application scripts and its shortcuts while preserving saved local data under \`%LOCALAPPDATA%\ProjectShell\` (including \`profiles.json\`, \`settings.json\`, and \`workspaces.json\`). If prompted, review changes to existing project shortcuts before accepting them. The DevTools workspace root is a separate setting and does not have to match the application installation folder.
+Extract the newer official package, run its installer, and choose the **same installation folder** you used previously. ProjectShell updates application scripts and its shortcuts while preserving saved local data under `%LOCALAPPDATA%\ProjectShell` (including `profiles.json`, `settings.json`, and `workspaces.json`). If prompted, review changes to existing project shortcuts before accepting them. The DevTools workspace root is a separate setting and does not have to match the application installation folder.
 
 ### Uninstall ProjectShell (manual, user-controlled)
 
 ProjectShell currently **does not register a Windows Apps & Features uninstaller**. To uninstall it safely:
 
 1. **Close** the ProjectShell Manager and any ProjectShell-launched sessions. Record your chosen installation folder if it differs from the recommended locations.
-2. **Remove ProjectShell desktop shortcuts** you created, including \`Project Shell Manager.lnk\`, \`Project Shell Manager (Administrator).lnk\`, and any project shortcuts you want removed. For a custom project shortcut, check **Properties → Target** and verify it references ProjectShell before deleting it. If your desktop is redirected, check that location.
-3. In the **actual ProjectShell application installation folder**, delete only ProjectShell-installed files: \`ProjectShell.ps1\`, \`ProjectShell.Workspaces.ps1\`, \`Install-ProjectShell.ps1\`, \`Install-ProjectShell.exe\`, \`Diagnose-Launch.ps1\`, \`README.md\`, \`README.txt\` if present, and the two \`Project Shell Manager*.lnk\` shortcuts. If the folder has **no other files or projects**, you may remove the now-empty folder.
-4. **Optional: remove saved settings.** Open File Explorer, enter \`%LOCALAPPDATA%\ProjectShell\`, and review its contents. Deleting that folder removes your saved project profiles, workspace/tool lookup registry, desktop settings, and ProjectShell backups. **Keep it** if you might reinstall or want to preserve those settings.
+2. **Remove ProjectShell desktop shortcuts** you created, including `Project Shell Manager.lnk`, `Project Shell Manager (Administrator).lnk`, and any project shortcuts you want removed. For a custom project shortcut, check **Properties → Target** and verify it references ProjectShell before deleting it. If your desktop is redirected, check that location.
+3. In the **actual ProjectShell application installation folder**, delete only ProjectShell-installed files: `ProjectShell.ps1`, `ProjectShell.Workspaces.ps1`, `Install-ProjectShell.ps1`, `Install-ProjectShell.exe`, `Diagnose-Launch.ps1`, `README.md`, `README.txt` if present, and the two `Project Shell Manager*.lnk` shortcuts. If the folder has **no other files or projects**, you may remove the now-empty folder.
+4. **Optional: remove saved settings.** Open File Explorer, enter `%LOCALAPPDATA%\ProjectShell`, and review its contents. Deleting that folder removes your saved project profiles, workspace/tool lookup registry, desktop settings, and ProjectShell backups. **Keep it** if you might reinstall or want to preserve those settings.
 5. Delete the **downloaded/extracted installer ZIP** if you no longer need it.
 
-**Important:** Uninstalling ProjectShell does **not** delete imported or registered workspaces, development tools, user source code, or any contents of a DevTools root such as \`D:\DevTools\`. Never delete a shared DevTools folder to uninstall ProjectShell. If you installed ProjectShell into a folder containing other work, remove only the known ProjectShell files listed above. Removing ProjectShell does not automatically restore files moved during an earlier workspace import.
+**Important:** Uninstalling ProjectShell does **not** delete imported or registered workspaces, development tools, user source code, or any contents of a DevTools root such as `D:\DevTools`. Never delete a shared DevTools folder to uninstall ProjectShell. If you installed ProjectShell into a folder containing other work, remove only the known ProjectShell files listed above. Removing ProjectShell does not automatically restore files moved during an earlier workspace import.
 
 ## Code signing policy
 

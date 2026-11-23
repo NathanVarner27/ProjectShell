@@ -41,7 +41,7 @@ GitHub Actions builds and checksum files alone do not confer Windows publisher t
 
 **This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.**
 
-ProjectShell is a local-first tool. Its project profiles, saved startup commands, workspace lookups, and desktop preferences remain on the user's computer under \`%LOCALAPPDATA%\ProjectShell\`. ProjectShell does not require an account, analytics, or telemetry to manage these settings. Creating shortcuts, opening local folders, installing into a selected directory, and running saved tools are local actions.
+ProjectShell is a local-first tool. Its project profiles, saved startup commands, workspace lookups, and desktop preferences remain on the user's computer under `%LOCALAPPDATA%\ProjectShell`. ProjectShell does not require an account, analytics, or telemetry to manage these settings. Creating shortcuts, opening local folders, installing into a selected directory, and running saved tools are local actions.
 
 **User-directed actions are different:** A program, script, Git command, external service, or installer that a user chooses to run through ProjectShell may access a network and has its own privacy practices. ProjectShell does not endorse or override those external tools' policies. Looking at online source documentation or downloading a release through a browser likewise involves the user's chosen external services.
 
@@ -51,12 +51,12 @@ ProjectShell does not silently change system-wide PowerShell execution policy or
 
 On Windows, open PowerShell in the downloaded/extracted release folder and run:
 
-\`\`\`powershell
+```powershell
 Get-AuthenticodeSignature -FilePath ".\Install-ProjectShell.exe" |
     Format-List Status, StatusMessage, SignerCertificate
-\`\`\`
+```
 
-A qualifying signed executable should show \`Status : Valid\` and a signer certificate issued to **SignPath Foundation**. If the file is unsigned, \`Status\` will not be \`Valid\` (for example, \`NotSigned\`). A valid signature is not a substitute for reviewing which official release and source revision the file belongs to.
+A qualifying signed executable should show `Status : Valid` and a signer certificate issued to **SignPath Foundation**. If the file is unsigned, `Status` will not be `Valid` (for example, `NotSigned`). A valid signature is not a substitute for reviewing which official release and source revision the file belongs to.
 
 **Do not rely on a filename, release description, SmartScreen prompt, or this policy alone as proof of signing.** Verify the individual EXE. ZIP packages are not themselves Authenticode-signed merely because they contain a signed EXE.
 
