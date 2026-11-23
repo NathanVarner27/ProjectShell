@@ -283,8 +283,11 @@ function New-DevWorkspace {
         $source = ConvertTo-WorkspacePath $source
         if ((Get-Item -LiteralPath $source).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Cannot import a linked folder.' }
         if ($source.TrimEnd('\') -ieq [IO.Path]::GetPathRoot($source).TrimEnd('\')) { throw 'Cannot import a drive root.' }
-        foreach ($protected in @($env:SystemRoot,$env:ProgramFiles,[Environment]::GetEnvironmentVariable('ProgramFiles(x86)'),$script:AppRoot,$env:USERPROFILE,$env:LOCALAPPDATA,$env:APPDATA,(Split-Path -Path $script:ProgramPath -Parent))) {
-            if ($protected -and (Test-PathUnder $source $protected)) { throw 'Cannot import system/application data directories.' }
+        foreach ($protected in @($env:SystemRoot,$env:ProgramFiles,[Environment]::GetEnvironmentVariable('ProgramFiles(x86)'),$script:AppRoot,(Split-Path -Path $script:ProgramPath -Parent))) {
+            if ($protected -and (Test-PathUnder $source $protected)) { throw 'Cannot import system or ProjectShell installation directories.' }
+        }
+        foreach ($protected in @($env:USERPROFILE,$env:LOCALAPPDATA,$env:APPDATA)) {
+            if ($protected -and (Test-PathUnder $protected $source)) { throw 'Cannot import an entire user profile or AppData root.' }
         }
         $links = @(Get-ChildItem -LiteralPath $source -Recurse -Force | Where-Object {
             $_.Attributes -band [IO.FileAttributes]::ReparsePoint
