@@ -32,6 +32,21 @@ Some testing tasks require administrator access; others don't. ProjectShell lets
 
 The manager uses numbered choices instead of making you memorize its commands. You can create, check, and manage project shortcuts from that menu.
 
+### Organize DevTools and import workspaces (development branch)
+
+Open **13 — DevTools folder and saved workspace/tool lookups** in the manager. Configure a default development-tools folder once (such as `D:\DevTools`), then create a new workspace, register an existing workspace folder, or import a folder or archive. The DevTools folder and ProjectShell's own installation folder are independent settings.
+
+Import supports **folders and ZIP archives**, plus **RAR and 7Z** when 7-Zip is installed locally. Copy preserves the source. Move performs a copy first and verifies SHA-256 hashes before deleting the source after explicit user confirmation. Imports stage content under a temporary name and do not overwrite existing workspace folders. Only import archives you trust.
+
+For each workspace, locate and save a **main launchable** (EXE, PS1, CMD, BAT, Python, JavaScript, or JAR) and optionally **an installer path** (saved separately). You can use suggestions, browse to a file, or type/paste its path. ProjectShell never runs the saved installer automatically.
+
+### Launch a tool without leaving the menu
+
+Inside a project session, **6** launches the saved main tool, **7** sets or changes it, and **8** opens saved workspace/tool lookups. The manager's **14** sets a shortcut's main launchable. During shortcut setup, startup option **4** can launch the saved main tool automatically when the shortcut opens, instead of merely opening the project folder.
+
+An installer is not treated as the everyday main launchable. Existing project profiles work without a workspace registration.
+
+
 ## What you'll need
 
 - Windows 10 or 11 with an interactive desktop and Windows Explorer.
@@ -45,7 +60,7 @@ Standard shortcuts use Windows PowerShell 5.1 intentionally. On some computers, 
 
 1. Download or clone this repository, or use a complete installer package if one is available under [Releases](https://github.com/NathanVarner27/ProjectShell/releases). Extract the ZIP before installing, and use a folder you trust.
 2. Review the PowerShell scripts (`.ps1`) before running them. ProjectShell creates Windows shortcuts and saves your project settings locally.
-3. On Windows x64, the easiest option is to double-click `Install-ProjectShell.exe` **if it is included in your downloaded package**. The GitHub source ZIP does not include a compiled installer. Follow the numbered prompts to pick an installation folder and choose whether you want desktop shortcuts.
+3. On Windows x64, the easiest option is to double-click `Install-ProjectShell.exe` **if it is included in your downloaded package**. The GitHub source ZIP does not include a compiled installer. Keep `ProjectShell.Workspaces.ps1` beside `ProjectShell.ps1` when installing from source. Follow the numbered prompts to pick an installation folder and choose whether you want desktop shortcuts.
 4. If the installer EXE isn't included, or you prefer running the source script, open a regular (not administrator) Windows PowerShell window in the extracted folder and enter:
 
 ```powershell
@@ -82,6 +97,8 @@ If you're testing a normal session, choose **Admin: No** and **Classic PowerShel
 
 ## Your project settings
 
+The workspace registry and selected DevTools root are saved locally in `%LOCALAPPDATA%\ProjectShell\workspaces.json`. This file is not part of the public repository.
+
 ProjectShell keeps your settings on your own computer:
 
 | Item | Location |
@@ -91,7 +108,7 @@ ProjectShell keeps your settings on your own computer:
 | Desktop preferences | `%LOCALAPPDATA%\ProjectShell\settings.json` |
 | Created project shortcuts | The Windows desktop folder chosen during installation |
 
-Updating ProjectShell keeps your saved profiles and startup commands in place. These personal files aren't meant to go in the public GitHub repository. **Don't upload your profiles, settings, logs, backups, or personal `.lnk` files**, since they may reveal local folders or commands.
+Updating ProjectShell keeps your saved profiles, workspace registry, and startup commands in place. These personal files aren't meant to go in the public GitHub repository. **Don't upload your profiles, settings, logs, backups, or personal `.lnk` files**, since they may reveal local folders or commands.
 
 ## If a shortcut isn't working
 
