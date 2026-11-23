@@ -21,6 +21,7 @@ REQUIRED = {
     "ProjectShell.ps1",
     "ProjectShell.Workspaces.ps1",
     "ProjectShell.Catalogue.ps1",
+    "ProjectShell.Migration.ps1",
     "Diagnose-Launch.ps1",
     "README.md",
     "SECURITY.md",
