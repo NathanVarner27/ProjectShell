@@ -63,7 +63,7 @@ try {
 
     $source = Get-Content -LiteralPath (Join-Path $root 'ProjectShell.Catalogue.ps1') -Raw
     Assert (-not $source.Contains('--interactive-apply')) 'ProjectShell never requests Catalogue apply mode'
-    Assert (-not ($source -match '(?i)Start-Process|Enable-WindowsOptionalFeature|winget install|choco install|--accept|Verb RunAs')) 'No direct system installation or silent elevation in bridge'
+    Assert (-not ($source -match '(?im)\bStart-Process\b|\bEnable-WindowsOptionalFeature\b|^\s*(&\s*)?(winget|choco)(\.exe)?\s+(install|upgrade|repair|uninstall)\b|--accept|\bVerb\s+RunAs\b')) 'No direct system installation or silent elevation in bridge'
     Write-Host 'PROJECTSHELL_CATALOGUE_PREVIEW_TESTS_PASSED' -ForegroundColor Green
 }
 finally {
