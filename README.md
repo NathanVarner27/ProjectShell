@@ -166,6 +166,8 @@ ProjectShell keeps your settings on your own computer:
 | Optional Catalogue location and generated broker requests | `%LOCALAPPDATA%\ProjectShell\catalogue-integration.json` and `dependency-requests\` |
 | Created project shortcuts | The Windows desktop folder chosen during installation |
 
+When a ProjectShell project session starts, it now exports the profile's saved `StartDirectory` as the **process-local** environment variable `PROJECTSHELL_START_DIRECTORY`. Child applications such as GitHub Package Builder can use this as an editable default even if you change the working directory. It is **not** a system-wide or persistent environment setting, and ProjectShell does not expose private profile JSON to applications. Older ProjectShell versions still set the initial working directory, which applications may use as a fallback.
+
 Updating ProjectShell keeps your saved profiles, workspace registry, and startup commands in place. These personal files aren't meant to go in the public GitHub repository. **Don't upload your profiles, settings, logs, backups, or personal `.lnk` files**, since they may reveal local folders or commands.
 
 ## If a shortcut isn't working
