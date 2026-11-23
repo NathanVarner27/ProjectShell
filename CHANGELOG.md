@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — DevTools workspace management
+## ProjectShell v1.1.0 — DevTools workspace management (2026-11-23)
 
 - Added a configurable DevTools root separate from ProjectShell's installation folder and a local saved workspace registry.
 - Added creation and import of folders, ZIP archives, and RAR/7Z archives with locally installed 7-Zip, plus registration of existing DevTools folders.
@@ -8,7 +8,9 @@
 - Added saved per-workspace main launchables and separate installer locations, with file-picker and manual path selection.
 - Added direct main-tool launch and launcher setup from numbered manager and session menus.
 - Added a startup action for shortcuts that automatically runs the selected main tool.
-- Updated installer packaging and source validation for the new module. Windows integration testing is required before release.
+- Added a complete source-built Windows x64 ZIP and standalone setup EXE, including code-signing policy, security and removal documentation.
+- Added isolated Windows package/source integrity and scripted installation tests. Full interactive desktop and UAC testing remains separate.
+- Added SHA-256 checksums and free GitHub Actions artifact attestations for official main-branch builds; binaries remain Authenticode unsigned pending SignPath Foundation approval.
 
 
 ## ProjectShell v1 — Standalone CLI
