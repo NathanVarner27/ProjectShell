@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — ProjectShell v1.2.0 preview: Catalogue dependency handoff
+
+- Added optional, preview-only Nathan's Catalogue Dependency Broker v1 integration using the alpha.13 structured JSON contract.
+- Added read-only dependency detection for 7-Zip, Windows Sandbox, WinGet and Chocolatey, with independent operation when Catalogue is missing.
+- Added a user-initiated Catalogue review menu in manager/session/workspace menus and optional preview during RAR/7Z imports when 7-Zip is missing.
+- Preserved manual fallbacks for unsupported PowerShell modules, runtimes and Windows features; no automated installs, updates, repairs, removals or elevation.
+- Added Windows PowerShell 5.1/7 regression tests, installer packaging integration and security/contract documentation. Windows preview acceptance is pending; system installation remains disabled.
+
+
 ## ProjectShell v1.1.0 — DevTools workspace management (2026-11-23)
 
 - Added a configurable DevTools root separate from ProjectShell's installation folder and a local saved workspace registry.
