@@ -1,4 +1,8 @@
 name: Windows installer launcher build
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
 on:
   push:
   pull_request:
@@ -52,9 +56,31 @@ jobs:
                   assert z.getinfo(filename).file_size > 0
           print('PASS: Complete ProjectShell installer ZIP')
           PY
-      - name: Upload complete ProjectShell installer ZIP
+      - name: Build complete standalone installer from source-built ZIP
+        run: |
+          python3 scripts/build-standalone-installer.py \
+            ProjectShell-v1.1.0-Windows-x64.zip \
+            ProjectShell-v1.1.0-Windows-x64-Setup.exe
+          python3 scripts/check-installer-pe.py ProjectShell-v1.1.0-Windows-x64-Setup.exe
+      - name: Generate release SHA-256 checksums
+        run: |
+          sha256sum \
+            ProjectShell-v1.1.0-Windows-x64-Setup.exe \
+            ProjectShell-v1.1.0-Windows-x64.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Attest release artifacts (main branch only)
+        if: github.ref == 'refs/heads/main'
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            ProjectShell-v1.1.0-Windows-x64-Setup.exe
+            ProjectShell-v1.1.0-Windows-x64.zip
+      - name: Upload full release package
         uses: actions/upload-artifact@v6
         with:
-          name: ProjectShell-v1.1.0-Windows-x64
-          path: ProjectShell-v1.1.0-Windows-x64.zip
+          name: ProjectShell-v1.1.0-release-unsigned
+          path: |
+            ProjectShell-v1.1.0-Windows-x64-Setup.exe
+            ProjectShell-v1.1.0-Windows-x64.zip
+            SHA256SUMS.txt
           if-no-files-found: error
