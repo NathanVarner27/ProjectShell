@@ -1,7 +1,7 @@
 ﻿# Read-only validation: parse application scripts and check release invariants.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Path $PSScriptRoot -Parent
-$files = @('ProjectShell.ps1', 'ProjectShell.Workspaces.ps1', 'Install-ProjectShell.ps1', 'Diagnose-Launch.ps1')
+$files = @('ProjectShell.ps1', 'ProjectShell.Workspaces.ps1', 'ProjectShell.Catalogue.ps1', 'Install-ProjectShell.ps1', 'Diagnose-Launch.ps1')
 foreach ($relative in $files) {
     $file = Join-Path $root $relative
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing: $relative" }
@@ -19,6 +19,7 @@ $app = Get-Content -LiteralPath (Join-Path $root 'ProjectShell.ps1') -Raw
 $installer = Get-Content -LiteralPath (Join-Path $root 'Install-ProjectShell.ps1') -Raw
 $diagnostic = Get-Content -LiteralPath (Join-Path $root 'Diagnose-Launch.ps1') -Raw
 $workspace = Get-Content -LiteralPath (Join-Path $root 'ProjectShell.Workspaces.ps1') -Raw
+$catalogue = Get-Content -LiteralPath (Join-Path $root 'ProjectShell.Catalogue.ps1') -Raw
 $checks = @(
     @{ Name='Standard shell selection'; Pass=($app -match 'function Get-StandardPowerShellExe' -and $app.Contains('WindowsPowerShell\v1.0\powershell.exe')) },
     @{ Name='Explicit manager UAC'; Pass=($app -match '-ElevateManager' -and $app -match '-Verb RunAs') },
@@ -29,6 +30,8 @@ $checks = @(
     @{ Name='Native launcher build scripts'; Pass=((Test-Path -LiteralPath (Join-Path $root 'native/InstallLauncher.c')) -and (Test-Path -LiteralPath (Join-Path $root 'scripts/build-native-installer.sh'))) },
     @{ Name='Diagnostic uses actual script folder'; Pass=($diagnostic -match '\$PSScriptRoot') },
     @{ Name='Application profiles stored outside installation'; Pass=($app -match 'Join-Path \$env:LOCALAPPDATA') },
+    @{ Name='Catalogue broker module installed'; Pass=($installer.Contains('ProjectShell.Catalogue.ps1') -and $app.Contains('. $script:CatalogueModule')) },
+    @{ Name='Catalogue preview only'; Pass=($catalogue.Contains('schema_version=1') -and $catalogue.Contains('dependency-request') -and -not $catalogue.Contains('--interactive-apply') -and -not $catalogue.Contains('Start-Process')) },
     @{ Name='Workspace module installed'; Pass=($installer.Contains('ProjectShell.Workspaces.ps1') -and $app.Contains('. $script:WorkspaceModule')) },
     @{ Name='Session tool launch and update menu'; Pass=($app.Contains('Start-ProfileLaunchable $entry') -and $app.Contains('Set-ProfileLaunchable $entry')) },
     @{ Name='Workspace source transfer approval'; Pass=($workspace.Contains('Assert-CopiedFolder') -and $workspace.Contains('Confirm original deletion after verifying copied content?')) },
