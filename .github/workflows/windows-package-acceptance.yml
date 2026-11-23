@@ -1,0 +1,49 @@
+name: ProjectShell Windows x64 installer ZIP verification (NO PUBLICATION)
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify-win-x64-zip:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout ProjectShell source for comparison
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Python for ZIP and PE verification
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.12'
+      - name: Retrieve Windows installer ZIP from pinned ProjectShell build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $run = gh run view 45139077138 --repo NathanVarner27/ProjectShell --json headSha --jq '.headSha'
+          if ($LASTEXITCODE -ne 0 -or $run.Trim() -ne 'cc851915241fe3430ddc11bc674a67c112fde37b') {
+            throw 'Pinned Windows build run does not match expected ProjectShell source commit.'
+          }
+          $dir = Join-Path $env:RUNNER_TEMP 'ProjectShellPackageAcceptance'
+          New-Item -ItemType Directory -Path $dir -Force | Out-Null
+          gh run download 45139077138 --repo NathanVarner27/ProjectShell --name ProjectShell-v1.0-Windows-x64 --dir $dir
+          if ($LASTEXITCODE -ne 0) { throw 'Windows artifact download failed.' }
+          if (-not (Test-Path -LiteralPath (Join-Path $dir 'ProjectShell-v1.0-Windows-x64.zip') -PathType Leaf)) {
+            throw 'Windows installer ZIP missing.'
+          }
+      - name: Verify Windows installer ZIP integrity and source equivalence
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP 'ProjectShellPackageAcceptance\ProjectShell-v1.0-Windows-x64.zip'
+          python tests/verify_windows_installer_package.py --zip "$zip" --source .
+          if ($LASTEXITCODE -ne 0) { throw 'ProjectShell Windows installer package verification failed.' }
