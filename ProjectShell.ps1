@@ -781,6 +781,12 @@ $script:WorkspaceModule = Join-Path (Split-Path -Path $script:ProgramPath -Paren
 if (-not (Test-Path -LiteralPath $script:WorkspaceModule -PathType Leaf)) { throw 'Missing ProjectShell.Workspaces.ps1; rerun Install-ProjectShell.ps1.' }
 . $script:WorkspaceModule
 
+# Optional standalone Catalogue dependency broker preview is kept separate from
+# shortcut execution, installer privileges, local workspaces, and logging.
+$script:CatalogueModule = Join-Path (Split-Path -Path $script:ProgramPath -Parent) 'ProjectShell.Catalogue.ps1'
+if (-not (Test-Path -LiteralPath $script:CatalogueModule -PathType Leaf)) { throw 'Missing ProjectShell.Catalogue.ps1; rerun the current installer.' }
+. $script:CatalogueModule
+
 function Show-Manager {
     while ($true) {
         $profiles = @(Read-Store)
@@ -806,6 +812,7 @@ function Show-Manager {
         Write-Host ' 12. Audit project shortcut elevation settings'
         Write-Host ' 13. DevTools folder and saved workspace/tool lookups'
         Write-Host ' 14. Set primary launchable for a shortcut'
+        Write-Host ' 15. Optional system dependencies (Catalogue preview only)'
         Write-Host '  0. Exit manager'
         $choice = (Read-Host 'Number').Trim()
         try {
@@ -853,6 +860,7 @@ function Show-Manager {
                 '11' { Show-ManagerDesktopShortcut }
                 '12' { Show-LauncherAudit }
                 '13' { Show-WorkspaceToolsMenu }
+                '15' { Show-ProjectShellCatalogueMenu }
                 '14' {
                     $selected = Select-Profile $profiles 'Set launchable for shortcut number'
                     if ($null -ne $selected) { Set-ProfileLaunchable $selected }
@@ -950,6 +958,7 @@ function Show-OpenProjectMenu([string]$Id) {
         Write-Host '  6. Launch saved primary tool'
         Write-Host '  7. Set/change this shortcut main launchable'
         Write-Host '  8. DevTools folder and saved tool lookups'
+        Write-Host '  9. Optional system dependencies (Catalogue preview only)'
         Write-Host '  0. Return to PowerShell prompt'
         $answer = (Read-Host 'Number').Trim()
         try {
@@ -965,6 +974,7 @@ function Show-OpenProjectMenu([string]$Id) {
                 '6' { Start-ProfileLaunchable $entry }
                 '7' { Set-ProfileLaunchable $entry }
                 '8' { Show-WorkspaceToolsMenu }
+                '9' { Show-ProjectShellCatalogueMenu }
                 '5' {
                     Enter-UserProfileFolder
                     # Leave the project menu so the user can enter regular commands.
