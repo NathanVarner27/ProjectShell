@@ -20,13 +20,16 @@ jobs:
           if-no-files-found: error
       - name: Package complete Windows x64 installer
         run: |
-          python3 -m zipfile -c ProjectShell-v1.0-Windows-x64.zip \
+          python3 -m zipfile -c ProjectShell-v1.1.0-Windows-x64.zip \
             Install-ProjectShell.exe \
             Install-ProjectShell.ps1 \
             ProjectShell.ps1 \
             ProjectShell.Workspaces.ps1 \
             Diagnose-Launch.ps1 \
             README.md \
+            SECURITY.md \
+            CODE_SIGNING_POLICY.md \
+            CHANGELOG.md \
             LICENSE
           python3 - <<'PY'
           import zipfile
@@ -37,9 +40,12 @@ jobs:
               'ProjectShell.Workspaces.ps1',
               'Diagnose-Launch.ps1',
               'README.md',
+              'SECURITY.md',
+              'CODE_SIGNING_POLICY.md',
+              'CHANGELOG.md',
               'LICENSE',
           }
-          with zipfile.ZipFile('ProjectShell-v1.0-Windows-x64.zip') as z:
+          with zipfile.ZipFile('ProjectShell-v1.1.0-Windows-x64.zip') as z:
               assert set(z.namelist()) == expected, z.namelist()
               assert z.testzip() is None
               for filename in expected:
@@ -49,6 +55,6 @@ jobs:
       - name: Upload complete ProjectShell installer ZIP
         uses: actions/upload-artifact@v6
         with:
-          name: ProjectShell-v1.0-Windows-x64
-          path: ProjectShell-v1.0-Windows-x64.zip
+          name: ProjectShell-v1.1.0-Windows-x64
+          path: ProjectShell-v1.1.0-Windows-x64.zip
           if-no-files-found: error
