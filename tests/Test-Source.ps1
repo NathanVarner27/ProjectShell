@@ -35,6 +35,7 @@ $checks = @(
     @{ Name='Catalogue preview only'; Pass=($catalogue.Contains('schema_version=1') -and $catalogue.Contains('dependency-request') -and -not $catalogue.Contains('--interactive-apply') -and -not $catalogue.Contains('Start-Process')) },
     @{ Name='Migration module installed'; Pass=($installer.Contains('ProjectShell.Migration.ps1') -and $app.Contains('. $script:MigrationModule')) },
     @{ Name='Migration preview, receipt and rollback'; Pass=($migration.Contains('New-ProjectNameTransitionPlan') -and $migration.Contains('Invoke-ProjectNameTransition') -and $migration.Contains('Undo-ProjectNameTransition') -and $migration.Contains('RENAME ')) },
+    @{ Name='Migration bounded source inventory'; Pass=($migration.Contains('Find-ProjectNameTransitionReferences') -and $migration.Contains('Inventory limit reached')) },
     @{ Name='Workspace module installed'; Pass=($installer.Contains('ProjectShell.Workspaces.ps1') -and $app.Contains('. $script:WorkspaceModule')) },
     @{ Name='Session tool launch and update menu'; Pass=($app.Contains('Start-ProfileLaunchable $entry') -and $app.Contains('Set-ProfileLaunchable $entry')) },
     @{ Name='Workspace source transfer approval'; Pass=($workspace.Contains('Assert-CopiedFolder') -and $workspace.Contains('Confirm original deletion after verifying copied content?')) },
