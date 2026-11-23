@@ -34,6 +34,7 @@ $checks = @(
     @{ Name='Catalogue preview only'; Pass=($catalogue.Contains('schema_version=1') -and $catalogue.Contains('dependency-request') -and -not $catalogue.Contains('--interactive-apply') -and -not $catalogue.Contains('Start-Process')) },
     @{ Name='Workspace module installed'; Pass=($installer.Contains('ProjectShell.Workspaces.ps1') -and $app.Contains('. $script:WorkspaceModule')) },
     @{ Name='Session tool launch and update menu'; Pass=($app.Contains('Start-ProfileLaunchable $entry') -and $app.Contains('Set-ProfileLaunchable $entry')) },
+    @{ Name='Process-local ProjectShell folder handoff'; Pass=($app.Contains('function Set-ProjectShellLaunchContext') -and $app.Contains('$env:PROJECTSHELL_START_DIRECTORY') -and $app.Contains('Set-ProjectShellLaunchContext $entry') -and $workspace.Contains('Set-ProjectShellLaunchContext $Profile')) },
     @{ Name='Workspace source transfer approval'; Pass=($workspace.Contains('Assert-CopiedFolder') -and $workspace.Contains('Confirm original deletion after verifying copied content?')) },
     @{ Name='Tools stored independently from app'; Pass=($workspace.Contains('workspaces.json') -and $workspace.Contains('Save-WorkspaceStore')) },
     @{ Name='Installers never auto-run'; Pass=($workspace.Contains('not executed') -and $workspace.Contains('Invoke-SavedTool')) }
