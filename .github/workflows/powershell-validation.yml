@@ -17,6 +17,7 @@ jobs:
         run: |
           ./tests/Test-Source.ps1
           ./tests/Test-Workspaces.ps1
+          ./tests/Test-SessionContext.ps1
           ./tests/Test-CatalogueBridge.ps1
 
   validate-powershell-7:
@@ -30,4 +31,5 @@ jobs:
         run: |
           ./tests/Test-Source.ps1
           ./tests/Test-Workspaces.ps1
+          ./tests/Test-SessionContext.ps1
           ./tests/Test-CatalogueBridge.ps1
