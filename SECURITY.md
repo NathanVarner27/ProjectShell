@@ -14,7 +14,9 @@ ProjectShell works with local project settings. Profiles may contain personal fo
 
 ProjectShell uses process-local `-ExecutionPolicy Bypass` to run its PowerShell scripts. This does not change your computer's system-wide execution policy or disable Windows UAC. It also does not make an untrusted script safe.
 
-The Windows installer executable is unsigned and may trigger a SmartScreen warning. Check that you obtained it from a source you trust, and review the scripts before running them.
+The GitHub-built Windows launcher is currently unsigned and may trigger a SmartScreen warning. ProjectShell has selected SignPath Foundation for future code signing, pending application approval and verified build integration. **Do not represent an unsigned release as signed.** See [Code signing policy](CODE_SIGNING_POLICY.md). Check that you obtained an installer from the official GitHub Releases page and review its scripts before running them.
+
+ProjectShell itself does not transmit project settings over the network. User-configured applications or commands launched through ProjectShell may independently make network connections; review those tools separately. For uninstall instructions and optional local-data deletion, see [README — Uninstall ProjectShell](README.md#uninstall-projectshell-manual-user-controlled).
 
 ## Reporting a security issue
 

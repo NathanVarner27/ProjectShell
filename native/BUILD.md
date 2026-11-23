@@ -25,6 +25,7 @@ Include these files together in the extracted installation folder:
 - `Install-ProjectShell.exe`
 - `Install-ProjectShell.ps1`
 - `ProjectShell.ps1`
+- `ProjectShell.Workspaces.ps1`
 - `Diagnose-Launch.ps1`
 
 Also include `README.md` and `LICENSE` in a public distribution package. **Do not distribute the EXE by itself.** Users should extract the complete ZIP before running it.
@@ -33,7 +34,7 @@ Also include `README.md` and `LICENSE` in a public distribution package. **Do no
 
 The executable requests `asInvoker`, so it does not request elevation on its own. The launcher still cannot turn an already elevated process into a standard-user process.
 
-The PowerShell installer uses a process-local `-ExecutionPolicy Bypass`; this does not change system-wide policy or disable UAC. The EXE is unsigned, so Windows SmartScreen may warn users.
+The PowerShell installer uses a process-local `-ExecutionPolicy Bypass`; this does not change system-wide policy or disable UAC. The repository-built EXE is currently unsigned, so Windows SmartScreen may warn users. See the [code signing policy](../CODE_SIGNING_POLICY.md) for the planned SignPath Foundation integration; no signing is claimed until a built artifact has a valid signature.
 
 Before publishing a new downloadable installer package, test installation, updates, desktop shortcut selection, standard launches, and administrator launches on a real Windows desktop. Include testing on systems without a `D:` drive if possible.
 
