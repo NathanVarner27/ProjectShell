@@ -61,7 +61,7 @@ Recognized requests: optional **7-Zip** (WinGet exact ID), **Windows Sandbox** (
 
 ### Transition an application to a new name (post-v1.1 preview)
 
-ProjectShell includes a guided **application name transition** workflow for independent software that is changing names. It previews the exact ProjectShell-managed profile, group, workspace and desktop shortcut labels, then requires explicit confirmation before changing local metadata. It creates a recoverable backup and offers verification and rollback. **It does not rename application binaries, source trees, folders, GitHub repositories, published releases or user startup commands.**
+ProjectShell includes a guided **application name transition** workflow for independent software that is changing names. It previews the exact ProjectShell-managed profile, group, workspace and desktop shortcut labels, including one optional explicitly mapped legacy abbreviation, then requires explicit confirmation before changing local metadata. It creates a recoverable backup and offers verification and rollback. A separate bounded, read-only inventory can find old/new names within selected source files, but cannot verify binary or public distribution changes. **It does not rename application binaries, source trees, folders, GitHub repositories, published releases or user startup commands.**
 
 Open **16 — Application name transition / migration** in the ProjectShell Manager, **10** in a project session, or **9** in the workspace tools menu. The developer must independently verify a complete product-wide rename, including EXE/ZIP/MSIX identity, install/upgrade compatibility, documented aliases and existing user settings.
 
