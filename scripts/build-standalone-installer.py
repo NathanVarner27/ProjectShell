@@ -131,7 +131,7 @@ try {
     }
     New-Item -ItemType Directory -Path $extract -Force | Out-Null
     Expand-Archive -LiteralPath $bundle -DestinationPath $extract -Force
-    foreach ($name in @('Install-ProjectShell.ps1','ProjectShell.ps1','ProjectShell.Workspaces.ps1','Diagnose-Launch.ps1')) {
+    foreach ($name in @('Install-ProjectShell.ps1','ProjectShell.ps1','ProjectShell.Workspaces.ps1','ProjectShell.Catalogue.ps1','Diagnose-Launch.ps1')) {
         if (-not (Test-Path -LiteralPath (Join-Path $extract $name) -PathType Leaf)) {
             throw ('Missing required component: ' + $name)
         }
@@ -170,6 +170,7 @@ def main() -> None:
             "Install-ProjectShell.ps1",
             "ProjectShell.ps1",
             "ProjectShell.Workspaces.ps1",
+            "ProjectShell.Catalogue.ps1",
             "Diagnose-Launch.ps1",
         }.issubset(set(z.namelist())), "Missing essential installer scripts"
     digest = hashlib.sha256(archive).hexdigest().upper()
