@@ -47,3 +47,8 @@ jobs:
           $zip = Join-Path $env:RUNNER_TEMP 'ProjectShellPackageAcceptance\ProjectShell-v1.0-Windows-x64.zip'
           python tests/verify_windows_installer_package.py --zip "$zip" --source .
           if ($LASTEXITCODE -ne 0) { throw 'ProjectShell Windows installer package verification failed.' }
+      - name: Install extracted ZIP into isolated Windows profile (NO DESKTOP CHANGES)
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP 'ProjectShellPackageAcceptance\ProjectShell-v1.0-Windows-x64.zip'
+          & ./tests/Test-Installer-Sandbox.ps1 -ZipPath $zip
