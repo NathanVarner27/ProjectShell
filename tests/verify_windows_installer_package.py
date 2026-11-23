@@ -1,6 +1,6 @@
-"""Read-only Windows acceptance for the exact ProjectShell x64 installer ZIP.
+"""Read-only Windows acceptance for the current ProjectShell x64 installer ZIP.
 
-The tested artifact must originate from the pinned ProjectShell build run.
+The tested artifact is produced by the same CI run and source revision.
 Checks ZIP integrity, exact contents, EXE PE structure and companion scripts.
 Does NOT execute the installer, write user settings, or publish a release.
 """
@@ -15,7 +15,6 @@ import sys
 import tempfile
 import zipfile
 
-PINNED_SOURCE = "cc851915241fe3430ddc11bc674a67c112fde37b"
 REQUIRED = {
     "Install-ProjectShell.exe",
     "Install-ProjectShell.ps1",
@@ -23,6 +22,9 @@ REQUIRED = {
     "ProjectShell.Workspaces.ps1",
     "Diagnose-Launch.ps1",
     "README.md",
+    "SECURITY.md",
+    "CODE_SIGNING_POLICY.md",
+    "CHANGELOG.md",
     "LICENSE",
 }
 
@@ -82,7 +84,7 @@ def main() -> None:
                 raise RuntimeError("Native Windows PE check failed: " + check.stdout + check.stderr)
     print(json.dumps({
         "status": "WINDOWS_PROJECTSHELL_INSTALLER_ZIP_STRUCTURALLY_VERIFIED",
-        "expected_source_commit": PINNED_SOURCE,
+        "expected_source_commit": subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip(),
         "sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
         "package_files": len(REQUIRED),
         "windows_x64_pe": True,

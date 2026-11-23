@@ -2,6 +2,12 @@ LIBRARY KERNEL32.dll
 EXPORTS
   GetModuleFileNameW
   GetSystemDirectoryW
+  GetTempPathW
+  GetTempFileNameW
+  DeleteFileW
+  CreateDirectoryW
+  CreateFileW
+  WriteFile
   GetFileAttributesW
   CreateProcessW
   WaitForSingleObject
