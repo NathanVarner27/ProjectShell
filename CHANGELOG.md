@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — DevTools workspace management
+
+- Added a configurable DevTools root separate from ProjectShell's installation folder and a local saved workspace registry.
+- Added creation and import of folders, ZIP archives, and RAR/7Z archives with locally installed 7-Zip, plus registration of existing DevTools folders.
+- Added explicit copy/move decisions, staging, collision prevention, and copy verification before deleting originals.
+- Added saved per-workspace main launchables and separate installer locations, with file-picker and manual path selection.
+- Added direct main-tool launch and launcher setup from numbered manager and session menus.
+- Added a startup action for shortcuts that automatically runs the selected main tool.
+- Updated installer packaging and source validation for the new module. Windows integration testing is required before release.
+
+
 ## ProjectShell v1 — Standalone CLI
 
 ProjectShell's standalone CLI version brings project shortcuts, saved starting directories, startup commands, and numbered menus together in one PowerShell project manager for Windows.
