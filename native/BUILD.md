@@ -28,6 +28,7 @@ Include these files together in the extracted installation folder:
 - `Install-ProjectShell.ps1`
 - `ProjectShell.ps1`
 - `ProjectShell.Workspaces.ps1`
+- `ProjectShell.Catalogue.ps1` (optional, preview-only system dependency handoff)
 - `Diagnose-Launch.ps1`
 
 Also include `README.md`, `SECURITY.md`, `CODE_SIGNING_POLICY.md`, `CHANGELOG.md`, and `LICENSE` in a public distribution package. **Do not distribute the EXE by itself.** Users should extract the complete ZIP before running the bundled launcher; the separate `ProjectShell-v1.1.0-Windows-x64-Setup.exe` release asset does not require extraction.

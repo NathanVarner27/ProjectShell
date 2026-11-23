@@ -117,7 +117,18 @@ function Expand-ToolArchive([string]$Source, [string]$Folder) {
     }
     elseif ($extension -in @('.rar','.7z')) {
         $sevenZip = Get-SevenZipExe
-        if (-not $sevenZip) { throw 'RAR and 7Z files need 7-Zip (7z.exe) installed locally.' }
+        if (-not $sevenZip) {
+            Write-Host '7-Zip (7z.exe) is not installed or could not be located.' -ForegroundColor Yellow
+            Write-Host 'ProjectShell will not install or download it itself.' -ForegroundColor Yellow
+            if ((Get-Command Invoke-ProjectShellCataloguePreview -ErrorAction SilentlyContinue) -and
+                (Read-YesNo 'Review the optional 7-Zip prerequisite in Catalogue (preview only)?' $false)) {
+                Invoke-ProjectShellCataloguePreview '7zip'
+                $sevenZip = Get-SevenZipExe
+            }
+            if (-not $sevenZip) {
+                throw 'RAR and 7Z imports need 7-Zip. Use Catalogue to preview the dependency or install/locate it manually; retry the import after verification.'
+            }
+        }
         $listing = @(& $sevenZip l '-slt' $Source 2>&1)
         if ($LASTEXITCODE -ne 0) { throw '7-Zip failed to read archive entries.' }
         $entries = $false
@@ -427,6 +438,7 @@ function Show-WorkspaceToolsMenu {
         Write-Host '  5. Set workspace main launchable'
         Write-Host '  6. Save workspace installer location'
         Write-Host '  7. Make ProjectShell desktop shortcut'
+        Write-Host '  8. Check archive dependencies / Catalogue preview'
         Write-Host '  0. Back'
         $choice = (Read-Host 'Number').Trim()
         try {
@@ -457,6 +469,7 @@ function Show-WorkspaceToolsMenu {
                     $selected = Select-Workspace
                     if ($selected) { $null = New-Profile @(Read-Store) $null ([string]$selected.Path) ([string]$selected.Name) ([string]$selected.Id) }
                 }
+                '8' { Show-ProjectShellCatalogueMenu }
                 '0' { return }
                 default { Write-Host 'Choose a listed number.' -ForegroundColor Yellow }
             }

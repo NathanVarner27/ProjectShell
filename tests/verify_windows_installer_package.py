@@ -20,6 +20,7 @@ REQUIRED = {
     "Install-ProjectShell.ps1",
     "ProjectShell.ps1",
     "ProjectShell.Workspaces.ps1",
+    "ProjectShell.Catalogue.ps1",
     "Diagnose-Launch.ps1",
     "README.md",
     "SECURITY.md",

@@ -69,7 +69,7 @@ New-Item -Path $dataRoot -ItemType Directory -Force | Out-Null
 
 # When source and installation locations match, never copy a file onto itself.
 # If extracted elsewhere, replace just the app/installer/readme at the stable installation path.
-foreach ($fileName in @('ProjectShell.ps1', 'ProjectShell.Workspaces.ps1', 'Install-ProjectShell.ps1', 'Install-ProjectShell.exe', 'Diagnose-Launch.ps1', 'README.md', 'README.txt')) {
+foreach ($fileName in @('ProjectShell.ps1', 'ProjectShell.Workspaces.ps1', 'ProjectShell.Catalogue.ps1', 'Install-ProjectShell.ps1', 'Install-ProjectShell.exe', 'Diagnose-Launch.ps1', 'README.md', 'README.txt')) {
     $from = Join-Path $sourceRoot $fileName
     $to = Join-Path $installRoot $fileName
     if (-not (Test-Path -LiteralPath $from -PathType Leaf)) { continue }

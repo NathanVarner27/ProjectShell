@@ -52,7 +52,7 @@ try {
     }
     finally { $process.Dispose() }
 
-    foreach ($file in @('ProjectShell.ps1', 'ProjectShell.Workspaces.ps1',
+    foreach ($file in @('ProjectShell.ps1', 'ProjectShell.Workspaces.ps1', 'ProjectShell.Catalogue.ps1',
                          'Install-ProjectShell.ps1', 'Diagnose-Launch.ps1', 'Install-ProjectShell.exe')) {
         $path = Join-Path $installed $file
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw ('Installed file missing: ' + $file) }

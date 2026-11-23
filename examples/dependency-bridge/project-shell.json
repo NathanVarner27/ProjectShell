@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "app_id": "project-shell",
+  "app_name": "ProjectShell",
+  "requests": [
+    {
+      "provider": "winget",
+      "action": "install",
+      "package_id": "7zip.7zip",
+      "reason": "Optional 7-Zip support for importing RAR and 7Z workspaces into ProjectShell."
+    },
+    {
+      "provider": "windows-feature",
+      "action": "enable",
+      "feature_id": "windows-sandbox",
+      "reason": "Optional isolated Windows testing for developer workflows; requires edition and virtualization review."
+    }
+  ]
+}
