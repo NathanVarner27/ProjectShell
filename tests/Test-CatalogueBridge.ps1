@@ -58,8 +58,7 @@ try {
     function Read-Host { param([string]$Prompt) return $script:ChosenCatalogueRoot }
     Assert (Set-ProjectShellCatalogueRoot) 'Explicitly selected Catalogue folder is persisted'
     $actualRoot = Get-ProjectShellCatalogueRoot
-    Write-Host ('Catalogue root test: expected=[' + $fakeRoot + '] actual=[' + [string]$actualRoot + '] settings=[' + (Get-Content -LiteralPath $script:CatalogueSettingsPath -Raw) + ']')
-    Assert ($actualRoot -eq $fakeRoot) 'Catalogue root reused without requiring default D:\ path'
+    Assert ($actualRoot -eq [IO.Path]::GetFullPath($fakeRoot)) 'Catalogue root reused without requiring default D:\ path'
     Assert (Test-Path -LiteralPath $script:CatalogueSettingsPath -PathType Leaf) 'Only opt-in Catalogue setting is written'
 
     $source = Get-Content -LiteralPath (Join-Path $root 'ProjectShell.Catalogue.ps1') -Raw
