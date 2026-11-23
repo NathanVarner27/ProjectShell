@@ -49,8 +49,15 @@ def main() -> None:
             upstream = source / name
             if not upstream.is_file():
                 raise RuntimeError("Missing ProjectShell source file: " + name)
-            if z.read(name) != upstream.read_bytes():
-                raise RuntimeError("ZIP companion script does not match source: " + name)
+            # Windows Git can check out LICENSE with CRLF. Compare against the
+            # committed Git blob, which is the exact source used by the Linux
+            # cross-compiler to build this *Windows* x64 executable.
+            blob = subprocess.run(
+                ["git", "-C", str(source), "show", "HEAD:" + name],
+                capture_output=True, timeout=20,
+            )
+            if blob.returncode or z.read(name) != blob.stdout:
+                raise RuntimeError("ZIP companion file does not match committed source: " + name)
         exe = z.read("Install-ProjectShell.exe")
         if exe[:2] != b"MZ":
             raise RuntimeError("Windows EXE DOS signature missing")
