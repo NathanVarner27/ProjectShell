@@ -14,12 +14,13 @@ A complete rename includes much more than changing a desktop shortcut. ProjectSh
 - Open project session (`psmenu`): **10**
 - DevTools/workspace menu: **9**
 
-1. Select **1 — Plan/preview**, enter the existing application name and proposed new name. The old name must match a ProjectShell profile/workspace name exactly or be followed by ` - ` and a suffix (e.g. "GitHub Package Builder - Testing"). Abbreviated names such as `GPB` and `GHPB`, and folders like `GitHubPackageBuilder`, are **not silently rewritten**.
+1. Select **1 — Plan/preview**, enter the existing application name and proposed new name. You can optionally map one explicitly specified old short name/alias to a new alias. The old name or an explicitly selected old alias must match a ProjectShell profile/workspace name exactly or be followed by ` - ` and a suffix (e.g. "GitHub Package Builder - Testing"). Abbreviated names such as `GPB` and `GHPB`, and folders like `GitHubPackageBuilder`, are **not silently rewritten**.
 2. Review the matched project titles, profile groups, workspace labels and desktop shortcut filenames. **Preview does not change any files.**
 3. Choose **2 — Apply**, confirm a default-no prompt, and type exactly `RENAME <old name>`.
 4. ProjectShell writes a receipt and copies the original metadata/owned shortcuts to `%LOCALAPPDATA%\ProjectShell\name-migrations\<timestamp>-<id>\`, updates matching display names, and regenerates verified desktop shortcuts. Previous links are removed only when ProjectShell verifies that they target the corresponding ProjectShell profile. Unknown/unowned desktop links are left untouched.
 5. Choose **3 — Verify** to check metadata hashes and desktop shortcut presence. **This is not an application-wide verification.**
-6. Choose **4 — Roll back**. The app requires `ROLLBACK <receipt ID>` and refuses if source data changed, backups fail SHA-256 verification, or former shortcut paths are occupied.
+6. Select **5 — Inventory a selected app folder** to review matching old/new display names and text references without editing anything. The scan has directory and size caps, skips symlinks and common build/venv folders, and does **not** cover binaries, ignored directories, online distributions or hidden dependencies.
+7. Choose **4 — Roll back**. The app requires `ROLLBACK <receipt ID>` and refuses if source data changed, backups fail SHA-256 verification, or former shortcut paths are occupied.
 
 Application folders, executable paths, source files, GitHub projects, manifests, startup command text and other developer-owned assets are never automatically renamed. Nathan's Catalogue integration remains independent.
 
@@ -57,6 +58,8 @@ A migration can be **partially complete** even if ProjectShell's titles are upda
 - [ ] New shortcuts verify; old ProjectShell-owned shortcuts can be safely replaced.
 - [ ] Rollback restores previous saved data and owned shortcuts.
 - [ ] Unsafe names and stale plans are rejected.
+- [ ] Explicit legacy alias mapping updates only the selected abbreviation.
+- [ ] A bounded read-only source inventory identifies old names in text files but never edits the application.
 
 Tests are defined in `tests/Test-NameMigration.ps1`; verify successful Windows PowerShell 5.1/7 CI before checking these items.
 
