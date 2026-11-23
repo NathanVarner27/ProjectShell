@@ -325,6 +325,7 @@ function Read-Startup($entry) {
     Write-Host '  1. Open the folder and show a PowerShell prompt [recommended]'
     Write-Host '  2. Run a local .ps1 file (can rerun later)'
     Write-Host '  3. Run a PowerShell command (can rerun later)'
+    Write-Host '  4. Launch saved main tool automatically on shortcut open'
     while ($true) {
         $pick = (Read-Host 'Number').Trim()
         switch ($pick) {
@@ -348,7 +349,16 @@ function Read-Startup($entry) {
                 $entry.StartupValue = $value
                 return
             }
-            default { Write-Host 'Choose 1, 2, or 3.' -ForegroundColor Yellow }
+            '4' {
+                if (-not (Get-ProfileLaunchable $entry)) {
+                    Write-Host 'Locate a main tool for this shortcut/workspace first.' -ForegroundColor Yellow
+                    continue
+                }
+                $entry.StartupMode = 'MainTool'
+                $entry.StartupValue = ''
+                return
+            }
+            default { Write-Host 'Choose 1, 2, 3, or 4.' -ForegroundColor Yellow }
         }
     }
 }
@@ -901,7 +911,7 @@ function Invoke-ProjectTask($entry) {
     if ($elevated -and -not [bool]$entry.Admin) {
         Write-Host 'WARNING: standard profile opened in an elevated process.' -ForegroundColor Yellow
         Write-Host 'Close this window and launch the shortcut from a normal desktop session.' -ForegroundColor Yellow
-        if ([string]$entry.StartupMode -in @('Script','Command')) {
+        if ([string]$entry.StartupMode -in @('Script','Command','MainTool')) {
             Write-Host 'Automatic startup task skipped to avoid unintended administrator execution.' -ForegroundColor Yellow
             return
         }
@@ -918,6 +928,7 @@ function Invoke-ProjectTask($entry) {
                 else { & $entry.StartupValue }
             }
             'Command' { & ([scriptblock]::Create([string]$entry.StartupValue)) }
+            'MainTool' { Start-ProfileLaunchable $entry }
             default { Write-Host 'Unknown startup mode. Nothing was executed.' -ForegroundColor Yellow }
         }
     }
