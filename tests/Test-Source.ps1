@@ -1,7 +1,7 @@
 ﻿# Read-only validation: parse application scripts and check release invariants.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Path $PSScriptRoot -Parent
-$files = @('ProjectShell.ps1', 'ProjectShell.Workspaces.ps1', 'ProjectShell.Catalogue.ps1', 'Install-ProjectShell.ps1', 'Diagnose-Launch.ps1')
+$files = @('ProjectShell.ps1', 'ProjectShell.Workspaces.ps1', 'ProjectShell.Catalogue.ps1', 'ProjectShell.Migration.ps1', 'Install-ProjectShell.ps1', 'Diagnose-Launch.ps1')
 foreach ($relative in $files) {
     $file = Join-Path $root $relative
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing: $relative" }
@@ -20,6 +20,7 @@ $installer = Get-Content -LiteralPath (Join-Path $root 'Install-ProjectShell.ps1
 $diagnostic = Get-Content -LiteralPath (Join-Path $root 'Diagnose-Launch.ps1') -Raw
 $workspace = Get-Content -LiteralPath (Join-Path $root 'ProjectShell.Workspaces.ps1') -Raw
 $catalogue = Get-Content -LiteralPath (Join-Path $root 'ProjectShell.Catalogue.ps1') -Raw
+$migration = Get-Content -LiteralPath (Join-Path $root 'ProjectShell.Migration.ps1') -Raw
 $checks = @(
     @{ Name='Standard shell selection'; Pass=($app -match 'function Get-StandardPowerShellExe' -and $app.Contains('WindowsPowerShell\v1.0\powershell.exe')) },
     @{ Name='Explicit manager UAC'; Pass=($app -match '-ElevateManager' -and $app -match '-Verb RunAs') },
@@ -32,6 +33,8 @@ $checks = @(
     @{ Name='Application profiles stored outside installation'; Pass=($app -match 'Join-Path \$env:LOCALAPPDATA') },
     @{ Name='Catalogue broker module installed'; Pass=($installer.Contains('ProjectShell.Catalogue.ps1') -and $app.Contains('. $script:CatalogueModule')) },
     @{ Name='Catalogue preview only'; Pass=($catalogue.Contains('schema_version=1') -and $catalogue.Contains('dependency-request') -and -not $catalogue.Contains('--interactive-apply') -and -not $catalogue.Contains('Start-Process')) },
+    @{ Name='Migration module installed'; Pass=($installer.Contains('ProjectShell.Migration.ps1') -and $app.Contains('. $script:MigrationModule')) },
+    @{ Name='Migration preview, receipt and rollback'; Pass=($migration.Contains('New-ProjectNameTransitionPlan') -and $migration.Contains('Invoke-ProjectNameTransition') -and $migration.Contains('Undo-ProjectNameTransition') -and $migration.Contains('RENAME ')) },
     @{ Name='Workspace module installed'; Pass=($installer.Contains('ProjectShell.Workspaces.ps1') -and $app.Contains('. $script:WorkspaceModule')) },
     @{ Name='Session tool launch and update menu'; Pass=($app.Contains('Start-ProfileLaunchable $entry') -and $app.Contains('Set-ProfileLaunchable $entry')) },
     @{ Name='Workspace source transfer approval'; Pass=($workspace.Contains('Assert-CopiedFolder') -and $workspace.Contains('Confirm original deletion after verifying copied content?')) },
