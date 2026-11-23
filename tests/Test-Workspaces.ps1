@@ -12,7 +12,7 @@ function Assert([bool]$Condition, [string]$Description) {
 
 try {
     $script:AppRoot = Join-Path $temp 'AppData'
-    $script:ProgramPath = Join-Path $temp 'ProjectShell.ps1'
+    $script:ProgramPath = Join-Path (Join-Path $temp 'InstalledApp') 'ProjectShell.ps1'
     $script:AnswerQueue = New-Object 'System.Collections.Generic.Queue[string]'
     $script:ConfirmQueue = New-Object 'System.Collections.Generic.Queue[bool]'
     $script:ChosenFolder = ''
