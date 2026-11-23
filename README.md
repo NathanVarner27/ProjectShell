@@ -50,6 +50,14 @@ Inside a project session, **6** launches the saved main tool, **7** sets or chan
 
 An installer is not treated as the everyday main launchable. Existing project profiles work without a workspace registration.
 
+### Optional system dependencies through Nathan's Catalogue (development preview)
+
+ProjectShell continues to work independently. For missing optional system tools, it can generate a **Catalogue Dependency Broker v1** JSON request and open the independent Catalogue CLI for a **read-only preview**. It never installs, elevates, updates, removes, or automatically approves system dependencies. Catalogue v0.2.0-alpha.13's actual system-change workflow is **not production-approved**.
+
+Choose **15** in the ProjectShell Manager, **9** in a project session menu, or **8** in the DevTools/workspace menu. During a RAR/7Z import, a missing 7-Zip also offers this preview. You can configure a user-selected Catalogue folder; it is never required for normal ProjectShell use. ProjectShell rechecks the dependency after the preview returns rather than trusting an exit code.
+
+Recognized requests: optional **7-Zip** (WinGet exact ID), **Windows Sandbox** (Windows Optional Feature), and manual locators for **WinGet** and **Chocolatey**. General PowerShell modules, Python/Node/Java runtimes, and other Windows features are **not supported by this broker mapping**; follow the manual fallback. See [Catalogue integration and supported dependencies](docs/PROJECTSHELL_CATALOGUE_DEPENDENCIES.md) for full details.
+
 
 ## What you'll need
 
@@ -66,7 +74,7 @@ Standard shortcuts use Windows PowerShell 5.1 intentionally. On some computers, 
 
 Download an official complete Windows package from [GitHub Releases](https://github.com/NathanVarner27/ProjectShell/releases), or clone/download the source repository. Extract a ZIP to a folder you trust before running anything; review scripts if you are unsure about a download.
 
-The **repository-built** `Install-ProjectShell.exe` is a launcher, **not a self-contained installer**. It must be kept in the same extracted folder as `Install-ProjectShell.ps1`, `ProjectShell.ps1`, `ProjectShell.Workspaces.ps1`, and `Diagnose-Launch.ps1`. The repository source ZIP does not include the compiled EXE. Only use a single-file standalone installer if it is explicitly published and verified as such in an official release.
+The **repository-built** `Install-ProjectShell.exe` is a launcher, **not a self-contained installer**. It must be kept in the same extracted folder as `Install-ProjectShell.ps1`, `ProjectShell.ps1`, `ProjectShell.Workspaces.ps1`, `ProjectShell.Catalogue.ps1`, and `Diagnose-Launch.ps1`. The repository source ZIP does not include the compiled EXE. Only use a single-file standalone installer if it is explicitly published and verified as such in an official release.
 
 Requirements: Windows 10/11, Windows PowerShell 5.1, a writable installation folder, and an interactive Windows desktop. The installer works as a standard user when installing into a user-writable folder.
 
@@ -117,7 +125,7 @@ ProjectShell currently **does not register a Windows Apps & Features uninstaller
 
 1. **Close** the ProjectShell Manager and any ProjectShell-launched sessions. Record your chosen installation folder if it differs from the recommended locations.
 2. **Remove ProjectShell desktop shortcuts** you created, including `Project Shell Manager.lnk`, `Project Shell Manager (Administrator).lnk`, and any project shortcuts you want removed. For a custom project shortcut, check **Properties → Target** and verify it references ProjectShell before deleting it. If your desktop is redirected, check that location.
-3. In the **actual ProjectShell application installation folder**, delete only ProjectShell-installed files: `ProjectShell.ps1`, `ProjectShell.Workspaces.ps1`, `Install-ProjectShell.ps1`, `Install-ProjectShell.exe`, `Diagnose-Launch.ps1`, `README.md`, `README.txt` if present, and the two `Project Shell Manager*.lnk` shortcuts. If the folder has **no other files or projects**, you may remove the now-empty folder.
+3. In the **actual ProjectShell application installation folder**, delete only ProjectShell-installed files: `ProjectShell.ps1`, `ProjectShell.Workspaces.ps1`, `ProjectShell.Catalogue.ps1`, `Install-ProjectShell.ps1`, `Install-ProjectShell.exe`, `Diagnose-Launch.ps1`, `README.md`, `README.txt` if present, and the two `Project Shell Manager*.lnk` shortcuts. If the folder has **no other files or projects**, you may remove the now-empty folder.
 4. **Optional: remove saved settings.** Open File Explorer, enter `%LOCALAPPDATA%\ProjectShell`, and review its contents. Deleting that folder removes your saved project profiles, workspace/tool lookup registry, desktop settings, and ProjectShell backups. **Keep it** if you might reinstall or want to preserve those settings.
 5. Delete the **downloaded/extracted installer ZIP** if you no longer need it.
 
@@ -155,6 +163,7 @@ ProjectShell keeps your settings on your own computer:
 | Project profiles and saved startup actions | `%LOCALAPPDATA%\ProjectShell\profiles.json` |
 | Desktop preferences | `%LOCALAPPDATA%\ProjectShell\settings.json` |
 | DevTools root and saved workspace/tool lookups | `%LOCALAPPDATA%\ProjectShell\workspaces.json` |
+| Optional Catalogue location and generated broker requests | `%LOCALAPPDATA%\ProjectShell\catalogue-integration.json` and `dependency-requests\` |
 | Created project shortcuts | The Windows desktop folder chosen during installation |
 
 Updating ProjectShell keeps your saved profiles, workspace registry, and startup commands in place. These personal files aren't meant to go in the public GitHub repository. **Don't upload your profiles, settings, logs, backups, or personal `.lnk` files**, since they may reveal local folders or commands.
