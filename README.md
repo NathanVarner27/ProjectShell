@@ -1,10 +1,14 @@
 # ProjectShell
 
-**An accessibility-first PowerShell project manager for Windows.**
+**A free, open-source, accessibility-first PowerShell project and workspace manager for Windows.**
 
-When you're working in several PowerShell windows, it can be difficult to remember which session belongs to which project—or which commands you need to run before you can start working. ProjectShell is meant to make that easier. It gives each project a name, a starting folder, and its own shortcuts so you can spend more time working and less time setting everything up again.
+ProjectShell is a free, open-source, accessibility-first PowerShell project and workspace manager for Windows. It helps users organize development tools, configure project workspaces, create desktop shortcuts, and launch saved applications through a guided, numbered command-line interface.
 
-I built ProjectShell with accessibility in mind, especially for people with ADHD, people learning PowerShell, and anyone trying to keep several projects or different parts of the same application straight.
+ProjectShell is developed and maintained by **NathanVarner27** and distributed under the **Apache License 2.0**. Its source code and build workflows are publicly available on GitHub.
+
+**Repository:** https://github.com/NathanVarner27/ProjectShell
+
+When working in several PowerShell windows, ProjectShell gives each project a name, starting folder, and shortcut so users can keep sessions organized without retyping commands. It is designed with accessibility in mind, including users who benefit from guided menus instead of memorizing commands.
 
 ## What ProjectShell does
 
@@ -32,7 +36,7 @@ Some testing tasks require administrator access; others don't. ProjectShell lets
 
 The manager uses numbered choices instead of making you memorize its commands. You can create, check, and manage project shortcuts from that menu.
 
-### Organize DevTools and import workspaces (development branch)
+### Organize DevTools and import workspaces
 
 Open **13 — DevTools folder and saved workspace/tool lookups** in the manager. Configure a default development-tools folder once (such as `D:\DevTools`), then create a new workspace, register an existing workspace folder, or import a folder or archive. The DevTools folder and ProjectShell's own installation folder are independent settings.
 
@@ -58,28 +62,72 @@ Standard shortcuts use Windows PowerShell 5.1 intentionally. On some computers, 
 
 ## Install or update ProjectShell
 
-1. Download or clone this repository, or use a complete installer package if one is available under [Releases](https://github.com/NathanVarner27/ProjectShell/releases). Extract the ZIP before installing, and use a folder you trust.
-2. Review the PowerShell scripts (`.ps1`) before running them. ProjectShell creates Windows shortcuts and saves your project settings locally.
-3. On Windows x64, the easiest option is to double-click `Install-ProjectShell.exe` **if it is included in your downloaded package**. The GitHub source ZIP does not include a compiled installer. Keep `ProjectShell.Workspaces.ps1` beside `ProjectShell.ps1` when installing from source. Follow the numbered prompts to pick an installation folder and choose whether you want desktop shortcuts.
-4. If the installer EXE isn't included, or you prefer running the source script, open a regular (not administrator) Windows PowerShell window in the extracted folder and enter:
+### Download the correct files
+
+Download an official complete Windows package from [GitHub Releases](https://github.com/NathanVarner27/ProjectShell/releases), or clone/download the source repository. Extract a ZIP to a folder you trust before running anything; review scripts if you are unsure about a download.
+
+The **repository-built** `Install-ProjectShell.exe` is a launcher, **not a self-contained installer**. It must be kept in the same extracted folder as `Install-ProjectShell.ps1`, `ProjectShell.ps1`, `ProjectShell.Workspaces.ps1`, and `Diagnose-Launch.ps1`. The repository source ZIP does not include the compiled EXE. Only use a single-file standalone installer if it is explicitly published and verified as such in an official release.
+
+Requirements: Windows 10/11, Windows PowerShell 5.1, a writable installation folder, and an interactive Windows desktop. The installer works as a standard user when installing into a user-writable folder.
+
+### Guided installation settings
+
+Double-click `Install-ProjectShell.exe` in the **extracted complete package**, or start the guided PowerShell script using `-Guided`. The numbered prompts are:
+
+| Prompt | Choice | What it does |
+| --- | --- | --- |
+| Installation location | **1 — Recommended** (default) | Uses `D:\DevTools\ProjectShell` if `D:` exists; otherwise uses `%LOCALAPPDATA%\Programs\ProjectShell`. |
+| Installation location | **2 — Local AppData** | Always uses `%LOCALAPPDATA%\Programs\ProjectShell`. |
+| Installation location | **3 — Custom path** | Enter a full, absolute path to a writable folder. |
+| Installation location | **0 — Cancel** | Stops installation. |
+| Desktop manager shortcuts | **1 — Normal only** (default) | Creates/updates the regular manager shortcut on your selected desktop. |
+| Desktop manager shortcuts | **2 — Normal and Administrator** | Creates/updates both desktop manager shortcuts. |
+| Desktop manager shortcuts | **3 — Administrator only** | Creates/updates only the administrator shortcut on your selected desktop. |
+| Desktop manager shortcuts | **0 — Skip desktop changes** | Leaves existing desktop shortcuts unchanged. |
+
+The installer always creates the **normal** and **administrator** manager shortcuts inside the installation folder. If desktop installation is selected, it asks you to verify the actual desktop location (including redirected/OneDrive desktops). It may offer to move a previously installed, now-unselected desktop manager shortcut into a backup; this requires your response.
+
+For existing profiles, the installer refreshes saved project shortcuts and may ask whether to switch Windows Terminal profiles to the classic PowerShell console. At the end it can optionally open File Explorer to a new desktop shortcut; it **does not launch the manager automatically**.
+
+**Normal manager:** Windows PowerShell 5.1, without requesting administrator access. **Administrator manager:** requests Windows UAC permission, using PowerShell 7 when available. Only approve elevation when needed.
+
+### Install from the source script
+
+If the EXE is not included, run the script from the extracted folder in a **regular, non-administrator PowerShell** window:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\Install-ProjectShell.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\Install-ProjectShell.ps1" -Guided
 ```
 
-ProjectShell suggests `D:\DevTools\ProjectShell` when a `D:` drive is present. Otherwise it uses `%LOCALAPPDATA%\Programs\ProjectShell`. You can choose another folder with `-InstallRoot`:
+For an unattended *location choice only* (other prompts remain interactive), specify an install path:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\Install-ProjectShell.ps1" -InstallRoot "C:\Tools\ProjectShell"
 ```
 
-For updates, stick with the same installation folder. The installer lets you choose whether the normal manager, administrator manager, both, or neither should appear on your desktop. Both manager shortcuts are created in the installation folder regardless.
+`-ExecutionPolicy Bypass` is scoped to the launched PowerShell process. It does not change system-wide execution policy or disable UAC. Run scripts and launchables only from sources you trust.
 
-**About the EXE:** `Install-ProjectShell.exe` is a small launcher, not an all-in-one installer. It needs `Install-ProjectShell.ps1` beside it. It opens a standard-user console instead of automatically asking for administrator privileges. Since the EXE is unsigned, Windows SmartScreen may show a warning. See [how the installer is built](native/BUILD.md) for details.
+### Update without losing settings
 
-### A note about `-ExecutionPolicy Bypass`
+Extract the newer official package, run its installer, and choose the **same installation folder** you used previously. ProjectShell updates application scripts and its shortcuts while preserving saved local data under `%LOCALAPPDATA%\ProjectShell` (including `profiles.json`, `settings.json`, and `workspaces.json`). If prompted, review changes to existing project shortcuts before accepting them. The DevTools workspace root is a separate setting and does not have to match the application installation folder.
 
-The command above applies that setting only to the PowerShell process it starts; it doesn't change the computer's system-wide execution policy. ProjectShell also uses it for local shortcuts. Only run scripts and startup commands you trust. This does not turn off Windows UAC or override rules set by your organization.
+### Uninstall ProjectShell (manual, user-controlled)
+
+ProjectShell currently **does not register a Windows Apps & Features uninstaller**. To uninstall it safely:
+
+1. **Close** the ProjectShell Manager and any ProjectShell-launched sessions. Record your chosen installation folder if it differs from the recommended locations.
+2. **Remove ProjectShell desktop shortcuts** you created, including `Project Shell Manager.lnk`, `Project Shell Manager (Administrator).lnk`, and any project shortcuts you want removed. For a custom project shortcut, check **Properties → Target** and verify it references ProjectShell before deleting it. If your desktop is redirected, check that location.
+3. In the **actual ProjectShell application installation folder**, delete only ProjectShell-installed files: `ProjectShell.ps1`, `ProjectShell.Workspaces.ps1`, `Install-ProjectShell.ps1`, `Install-ProjectShell.exe`, `Diagnose-Launch.ps1`, `README.md`, `README.txt` if present, and the two `Project Shell Manager*.lnk` shortcuts. If the folder has **no other files or projects**, you may remove the now-empty folder.
+4. **Optional: remove saved settings.** Open File Explorer, enter `%LOCALAPPDATA%\ProjectShell`, and review its contents. Deleting that folder removes your saved project profiles, workspace/tool lookup registry, desktop settings, and ProjectShell backups. **Keep it** if you might reinstall or want to preserve those settings.
+5. Delete the **downloaded/extracted installer ZIP** if you no longer need it.
+
+**Important:** Uninstalling ProjectShell does **not** delete imported or registered workspaces, development tools, user source code, or any contents of a DevTools root such as `D:\DevTools`. Never delete a shared DevTools folder to uninstall ProjectShell. If you installed ProjectShell into a folder containing other work, remove only the known ProjectShell files listed above. Removing ProjectShell does not automatically restore files moved during an earlier workspace import.
+
+## Code signing policy
+
+ProjectShell has selected **SignPath Foundation** as its intended free code-signing provider. **SignPath approval and workflow integration are pending.** The current GitHub-built Windows launcher is **unsigned**; do not assume a GitHub download is Authenticode-signed unless its signature verifies.
+
+See the [ProjectShell code signing policy](CODE_SIGNING_POLICY.md), including maintainer roles, privacy commitments, signing approvals, and how to verify a signed release. Only the official [Releases](https://github.com/NathanVarner27/ProjectShell/releases) page should be used for public installer downloads.
 
 ## Getting started
 
@@ -106,6 +154,7 @@ ProjectShell keeps your settings on your own computer:
 | Application scripts and manager shortcuts | Your selected installation folder |
 | Project profiles and saved startup actions | `%LOCALAPPDATA%\ProjectShell\profiles.json` |
 | Desktop preferences | `%LOCALAPPDATA%\ProjectShell\settings.json` |
+| DevTools root and saved workspace/tool lookups | `%LOCALAPPDATA%\ProjectShell\workspaces.json` |
 | Created project shortcuts | The Windows desktop folder chosen during installation |
 
 Updating ProjectShell keeps your saved profiles, workspace registry, and startup commands in place. These personal files aren't meant to go in the public GitHub repository. **Don't upload your profiles, settings, logs, backups, or personal `.lnk` files**, since they may reveal local folders or commands.
@@ -138,6 +187,6 @@ I'm listing these because they were used to build or manage the project, not bec
 
 ## Developer and license
 
-Developed by **NathanVarner27** for future integration into the larger **Nathan's Ecosystem**.
+Developed and maintained by **NathanVarner27** for future integration into the larger **Nathan's Ecosystem**.
 
 ProjectShell is provided under the [Apache License, Version 2.0](LICENSE). See the repository's license file for the terms.
