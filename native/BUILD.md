@@ -4,6 +4,8 @@
 
 The executable **is not a self-contained installer**. It must be distributed with the PowerShell scripts it launches.
 
+A **different binary**, `ProjectShell-v1.1.0-Windows-x64-Setup.exe`, is also built from the verified complete release ZIP by `scripts/build-standalone-installer.py`. That release asset **is self-contained**. Both EXEs are currently unsigned while SignPath Foundation approval remains pending.
+
 ## Build it
 
 On a system with LLVM `clang-cl`, `lld-link`, Bash, and Python 3, run this from the repository folder:
@@ -16,7 +18,7 @@ The script builds `Install-ProjectShell.exe` in the repository root and then che
 
 The launcher source is in `native/InstallLauncher.c`. The `.def` files describe its Windows API imports. The build avoids a separate C runtime dependency.
 
-GitHub Actions also builds the unsigned EXE and provides it as a workflow artifact. A successful build proves the executable was compiled and passed structural checks; it does **not** prove that installation or desktop shortcuts work on every Windows computer.
+GitHub Actions builds the unsigned launcher and the standalone setup EXE, and provides both as workflow artifacts. A successful build proves the executable was compiled and passed structural checks; it does **not** prove that installation or desktop shortcuts work on every Windows computer.
 
 ## Package it
 
@@ -28,7 +30,7 @@ Include these files together in the extracted installation folder:
 - `ProjectShell.Workspaces.ps1`
 - `Diagnose-Launch.ps1`
 
-Also include `README.md` and `LICENSE` in a public distribution package. **Do not distribute the EXE by itself.** Users should extract the complete ZIP before running it.
+Also include `README.md`, `SECURITY.md`, `CODE_SIGNING_POLICY.md`, `CHANGELOG.md`, and `LICENSE` in a public distribution package. **Do not distribute the EXE by itself.** Users should extract the complete ZIP before running the bundled launcher; the separate `ProjectShell-v1.1.0-Windows-x64-Setup.exe` release asset does not require extraction.
 
 ## Permissions and Windows testing
 
