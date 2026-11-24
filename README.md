@@ -141,7 +141,7 @@ ProjectShell currently **does not register a Windows Apps & Features uninstaller
 
 ## Code signing policy
 
-ProjectShell has selected **SignPath Foundation** as its intended free code-signing provider. **SignPath approval and workflow integration are pending.** The current GitHub-built Windows launcher is **unsigned**; do not assume a GitHub download is Authenticode-signed unless its signature verifies.
+ProjectShell applied to the **SignPath Foundation** program, but its application was **declined for insufficient public visibility and adoption**. The current GitHub-built Windows executables are **unsigned**; there is no approved SignPath certificate or signed-publisher claim. GitHub attestations and SHA-256 checksums support integrity/provenance verification, not Windows publisher trust.
 
 See the [ProjectShell code signing policy](CODE_SIGNING_POLICY.md), including maintainer roles, privacy commitments, signing approvals, and how to verify a signed release. Only the official [Releases](https://github.com/NathanVarner27/ProjectShell/releases) page should be used for public installer downloads.
 
