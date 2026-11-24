@@ -59,6 +59,14 @@ Choose **15** in the ProjectShell Manager, **9** in a project session menu, or *
 Recognized requests: optional **7-Zip** (WinGet exact ID), **Windows Sandbox** (Windows Optional Feature), and manual locators for **WinGet** and **Chocolatey**. General PowerShell modules, Python/Node/Java runtimes, and other Windows features are **not supported by this broker mapping**; follow the manual fallback. See [Catalogue integration and supported dependencies](docs/PROJECTSHELL_CATALOGUE_DEPENDENCIES.md) for full details.
 
 
+### Transition an application to a new name (post-v1.1 preview)
+
+ProjectShell includes a guided **application name transition** workflow for independent software that is changing names. It previews the exact ProjectShell-managed profile, group, workspace and desktop shortcut labels, including one optional explicitly mapped legacy abbreviation, then requires explicit confirmation before changing local metadata. It creates a recoverable backup and offers verification and rollback. A separate bounded, read-only inventory can find old/new names within selected source files, but cannot verify binary or public distribution changes. **It does not rename application binaries, source trees, folders, GitHub repositories, published releases or user startup commands.**
+
+Open **16 — Application name transition / migration** in the ProjectShell Manager, **10** in a project session, or **9** in the workspace tools menu. The developer must independently verify a complete product-wide rename, including EXE/ZIP/MSIX identity, install/upgrade compatibility, documented aliases and existing user settings.
+
+**First pilot:** GitHub Package Builder. Its future public name has not yet been selected, so automated tests use a synthetic name, not a new published product identity. Follow the [migration guide and acceptance checklist](docs/PROJECTSHELL_APPLICATION_NAME_MIGRATION.md) before performing a real rename.
+
 ## What you'll need
 
 - Windows 10 or 11 with an interactive desktop and Windows Explorer.
@@ -133,7 +141,7 @@ ProjectShell currently **does not register a Windows Apps & Features uninstaller
 
 ## Code signing policy
 
-ProjectShell has selected **SignPath Foundation** as its intended free code-signing provider. **SignPath approval and workflow integration are pending.** The current GitHub-built Windows launcher is **unsigned**; do not assume a GitHub download is Authenticode-signed unless its signature verifies.
+ProjectShell applied to the **SignPath Foundation** program, but its application was **declined for insufficient public visibility and adoption**. The current GitHub-built Windows executables are **unsigned**; there is no approved SignPath certificate or signed-publisher claim. GitHub attestations and SHA-256 checksums support integrity/provenance verification, not Windows publisher trust.
 
 See the [ProjectShell code signing policy](CODE_SIGNING_POLICY.md), including maintainer roles, privacy commitments, signing approvals, and how to verify a signed release. Only the official [Releases](https://github.com/NathanVarner27/ProjectShell/releases) page should be used for public installer downloads.
 
@@ -165,8 +173,15 @@ ProjectShell keeps your settings on your own computer:
 | DevTools root and saved workspace/tool lookups | `%LOCALAPPDATA%\ProjectShell\workspaces.json` |
 | Optional Catalogue location and generated broker requests | `%LOCALAPPDATA%\ProjectShell\catalogue-integration.json` and `dependency-requests\` |
 | Created project shortcuts | The Windows desktop folder chosen during installation |
+| Application naming migration receipts/backups | `%LOCALAPPDATA%\ProjectShell\name-migrations\` |
 
 Updating ProjectShell keeps your saved profiles, workspace registry, and startup commands in place. These personal files aren't meant to go in the public GitHub repository. **Don't upload your profiles, settings, logs, backups, or personal `.lnk` files**, since they may reveal local folders or commands.
+
+### Active ProjectShell folder handoff (v1.2.0)
+
+When a ProjectShell project session starts or launches its saved tool, it passes the saved `StartDirectory` as `PROJECTSHELL_START_DIRECTORY` **in that process only**. Children such as Distribution Builder Pilot can propose the exact workspace folder even after you change directories. This is not written to persistent user/system environment settings, and ProjectShell does not expose your profile store to other applications.
+
+The application-name migration wizard changes ProjectShell-managed names and verified desktop links only. It does not move external application files or rewrite saved folder paths, launchables or startup commands; edit those separately in the Manager.
 
 ## If a shortcut isn't working
 

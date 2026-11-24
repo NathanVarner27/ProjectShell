@@ -1,6 +1,16 @@
 # Changelog
 
-## Unreleased — ProjectShell v1.2.0 preview: Catalogue dependency handoff
+## ProjectShell v1.2.0 — Catalogue, migration and session handoff
+
+- Added guided application name transition planning in Manager (16), project sessions (10) and workspace menu (9).
+- Added exact-confirmation changes to ProjectShell-owned profile/workspace labels and desktop shortcuts, with local snapshots, post-change checks and conservative rollback.
+- Added GitHub Package Builder to Distribution Builder Pilot (DBP) naming pilot, optional explicit legacy aliases, and a bounded read-only source-name inventory; no automatic external repository/filesystem rename. Fixtures remain synthetic.
+- Documented full software identity checklist for source, installer, ZIP/EXE/MSIX, GitHub distribution, legacy users and migration verification.
+
+- Export the active profile's saved start directory in the **process-local** PROJECTSHELL_START_DIRECTORY environment variable for approved child tooling, with no persistent environment changes.
+- Release ZIP and standalone Windows Setup EXE are unsigned; MSIX is a separate DBP development validation, not included as an official ProjectShell v1.2.0 artifact.
+
+### Existing Catalogue dependency handoff
 
 - Added optional, preview-only Nathan's Catalogue Dependency Broker v1 integration using the alpha.13 structured JSON contract.
 - Added read-only dependency detection for 7-Zip, Windows Sandbox, WinGet and Chocolatey, with independent operation when Catalogue is missing.
@@ -19,7 +29,7 @@
 - Added a startup action for shortcuts that automatically runs the selected main tool.
 - Added a complete source-built Windows x64 ZIP and standalone setup EXE, including code-signing policy, security and removal documentation.
 - Added isolated Windows package/source integrity and scripted installation tests. Full interactive desktop and UAC testing remains separate.
-- Added SHA-256 checksums and free GitHub Actions artifact attestations for official main-branch builds; binaries remain Authenticode unsigned pending SignPath Foundation approval.
+- Added SHA-256 checksums and free GitHub Actions artifact attestations for official main-branch builds; binaries remain Authenticode unsigned. SignPath Foundation later declined the application for insufficient public visibility/adoption.
 
 
 ## ProjectShell v1 — Standalone CLI

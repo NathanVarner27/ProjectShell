@@ -8,13 +8,15 @@ This policy applies to ProjectShell's official Windows release artifacts and is 
 
 ## Signing provider and current status
 
-**Selected provider (pending approval):** SignPath Foundation, using SignPath.io. The required acknowledgement for qualifying signed releases is:
+**Current status: unsigned; no approved public Authenticode signing provider.**
 
-> Free code signing provided by SignPath.io, certificate by SignPath Foundation
+ProjectShell applied to the SignPath Foundation program. The Foundation **declined the application** because the project had not yet established enough independent public adoption and visibility (such as community contributions, external references and sustained public engagement). SignPath invited the project to reapply if those conditions change. This is not a code-security assessment and is not an endorsement of any ProjectShell build.
 
-**Important status:** ProjectShell has selected SignPath Foundation as its code-signing provider, but SignPath Foundation acceptance, signing configuration, and issuance of signed release artifacts have **not yet been verified**. Until those steps are completed, repository-built Windows executables must be described as **unsigned**. This policy alone does **not** sign any files, certify any releases, or imply Foundation approval.
+**Do not claim that SignPath Foundation signs, approves, sponsors or provides a certificate for ProjectShell.** The project's public GitHub release binaries remain unsigned unless a future independently verified signing arrangement is explicitly documented. Windows may display an unknown-publisher or SmartScreen warning.
 
-When an official binary is actually signed using a SignPath Foundation certificate, the Windows certificate publisher will be **SignPath Foundation**, while ProjectShell remains developed and maintained by **NathanVarner27**. Only releases whose signatures have been checked may be labeled "signed."
+Official build artifacts can include SHA-256 checksums and GitHub Actions build attestations; these help verify artifact integrity and provenance but **do not** make a Windows executable Authenticode-signed, remove SmartScreen warnings, or establish a Windows publisher identity.
+
+Reapplication to SignPath or selection of another provider must be separately approved, and all signing claims must be based on verified signatures on the actual published file.
 
 ## Team roles and responsibilities
 
@@ -22,17 +24,17 @@ When an official binary is actually signed using a SignPath Foundation certifica
 | --- | --- | --- |
 | **Author / committer** | [NathanVarner27](https://github.com/NathanVarner27) | Develops and maintains the source repository and build workflows; evaluates requested changes. |
 | **Reviewer** | [NathanVarner27](https://github.com/NathanVarner27) | Reviews submissions from non-committers before merging, with extra scrutiny for executable behavior, installer changes, and build workflows. |
-| **Code-signing approver** | [NathanVarner27](https://github.com/NathanVarner27) | Reviews the exact release and build provenance and explicitly approves **each** signing request. |
+| **Release/signing approver** | [NathanVarner27](https://github.com/NathanVarner27) | Reviews release provenance; if a trusted signing service is later established, approves each signing request individually. |
 
-All team members with source or SignPath access must enable multi-factor authentication. If maintainers are added, this table must be updated with their responsibilities; changes from non-committers require review by an authorized project member. Signing approval is a **manual, release-by-release decision** and must not be granted automatically.
+All team members with source or future code-signing access should enable multi-factor authentication. If maintainers are added, this table must be updated with their responsibilities; changes from non-committers require review by an authorized project member. Signing approval is a **manual, release-by-release decision** and must not be granted automatically.
 
 ## Release and signing procedure
 
 1. Review the exact tagged source revision, changelog, dependencies, license, and all changes to packaging or GitHub Actions workflows.
 2. Run Windows PowerShell 5.1 and PowerShell 7 validation and the installer-build checks. Verify interactive installation and update behavior on Windows before a stable release.
-3. Build Windows executables **only from the project's public source and build scripts** using an auditable, reproducible GitHub Actions workflow. Verify the resulting artifact identities, source revision, and checksums. A locally supplied or untraceable executable must not be submitted as an official SignPath build.
-4. When the project is approved and integrated with SignPath.io, submit only ProjectShell-owned binaries from the verified build pipeline. The trusted **approver** must manually approve every signing request; do not sign unrelated or third-party binaries.
-5. After signing, verify Authenticode signatures and the intended release file hashes, then publish artifacts and release notes on [GitHub Releases](https://github.com/NathanVarner27/ProjectShell/releases). Clearly identify any files that remain unsigned.
+3. Build Windows executables **only from the project's public source and build scripts** using an auditable, reproducible GitHub Actions workflow. Verify resulting artifact identities, source revision, and checksums. Never represent an untraceable or locally supplied binary as an official verified build.
+4. Do **not** submit a signing request under SignPath Foundation's name without a future explicit acceptance. If an approved signing provider is later configured, submit only ProjectShell-owned binaries from the verified build pipeline, and require an authorized maintainer to approve each request.
+5. Publish artifacts and release notes on [GitHub Releases](https://github.com/NathanVarner27/ProjectShell/releases), clearly labeling unsigned executables. If future signing is established, verify Authenticode status, publisher identity, and intended release hashes before labeling files signed.
 6. If a build, review, signature, or provenance check fails, **do not publish it as signed**. Fix the issue and repeat verification.
 
 GitHub Actions builds and checksum files alone do not confer Windows publisher trust. A ZIP can carry checksums and build attestations; its included executable must independently have a valid Authenticode signature to be described as Windows-signed.
@@ -47,7 +49,7 @@ ProjectShell is a local-first tool. Its project profiles, saved startup commands
 
 ProjectShell does not silently change system-wide PowerShell execution policy or Windows UAC settings. Guided installation describes the file-copy and shortcut actions; administrator execution is explicitly requested through Windows UAC. For instructions to remove installed files, shortcuts, and optional local user data, see [uninstallation](README.md#uninstall-projectshell-manual-user-controlled).
 
-## Verify an official signed executable
+## Verify a downloaded executable's signing status
 
 On Windows, open PowerShell in the downloaded/extracted release folder and run:
 
@@ -56,12 +58,10 @@ Get-AuthenticodeSignature -FilePath ".\Install-ProjectShell.exe" |
     Format-List Status, StatusMessage, SignerCertificate
 ```
 
-A qualifying signed executable should show `Status : Valid` and a signer certificate issued to **SignPath Foundation**. If the file is unsigned, `Status` will not be `Valid` (for example, `NotSigned`). A valid signature is not a substitute for reviewing which official release and source revision the file belongs to.
+An unsigned ProjectShell executable is expected to show a status such as `NotSigned`. If a future release is signed, a result of `Status : Valid` must be accompanied by an appropriate signer certificate; verify the specific provider at that time. A valid signature does not independently establish which release and source revision the file belongs to.
 
 **Do not rely on a filename, release description, SmartScreen prompt, or this policy alone as proof of signing.** Verify the individual EXE. ZIP packages are not themselves Authenticode-signed merely because they contain a signed EXE.
 
 ## Security concerns and policy violations
 
-Please follow [SECURITY.md](SECURITY.md) and avoid posting secrets or private local paths in public issues. If an artifact claiming a SignPath Foundation signature may violate SignPath's rules, report it using the channels described in the [SignPath Foundation conditions](https://signpath.org/terms.html).
-
-The project commits to the [SignPath Foundation conditions for open-source projects](https://signpath.org/terms.html) if the application is accepted; publishing this policy does not assert that acceptance has occurred.
+Please follow [SECURITY.md](SECURITY.md) and avoid posting secrets or private local paths in public issues. If a file falsely claims a trusted publisher signature, preserve the evidence and report it through the repository's security contact and the relevant certificate provider's abuse channel.

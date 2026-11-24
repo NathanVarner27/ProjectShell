@@ -421,6 +421,7 @@ function Start-ProfileLaunchable($Profile) {
         Write-Host 'A standard profile launch cannot run from an elevated session.' -ForegroundColor Yellow
         return
     }
+    Set-ProjectShellLaunchContext $Profile
     Invoke-SavedTool (Get-ProfileLaunchable $Profile) ([string]$Profile.StartDirectory)
 }
 
@@ -439,6 +440,7 @@ function Show-WorkspaceToolsMenu {
         Write-Host '  6. Save workspace installer location'
         Write-Host '  7. Make ProjectShell desktop shortcut'
         Write-Host '  8. Check archive dependencies / Catalogue preview'
+        Write-Host '  9. Application name transition / migration'
         Write-Host '  0. Back'
         $choice = (Read-Host 'Number').Trim()
         try {
@@ -470,6 +472,7 @@ function Show-WorkspaceToolsMenu {
                     if ($selected) { $null = New-Profile @(Read-Store) $null ([string]$selected.Path) ([string]$selected.Name) ([string]$selected.Id) }
                 }
                 '8' { Show-ProjectShellCatalogueMenu }
+                '9' { Show-ProjectNameTransitionMenu }
                 '0' { return }
                 default { Write-Host 'Choose a listed number.' -ForegroundColor Yellow }
             }
