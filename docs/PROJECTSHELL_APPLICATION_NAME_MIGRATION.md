@@ -4,7 +4,7 @@
 
 ## Purpose
 
-ProjectShell provides a guided pathway when a separate application changes its public name. GitHub Package Builder is growing beyond GitHub packages, but its official replacement name is **not selected yet**. Do not publish or rename the actual project using a synthetic label from the regression tests.
+ProjectShell provides a guided pathway when a separate application changes its public name. GitHub Package Builder's owner has approved the new public name **Distribution Builder Pilot (DBP)**. Test fixtures remain synthetic and do not themselves rename any external application or GitHub repository.
 
 A complete rename includes much more than changing a desktop shortcut. ProjectShell can inventory the work and update **ProjectShell-owned display names only**. The developer remains responsible for editing and validating the application itself. This is **not** a folder, source-code, GitHub-repository or installed-program renamer.
 
@@ -45,9 +45,9 @@ A migration can be **partially complete** even if ProjectShell's titles are upda
 
 **Existing name:** GitHub Package Builder.
 
-**Official new name:** Developer selection pending.
+**Approved new name:** Distribution Builder Pilot (DBP).
 
-**Synthetic test name:** Distribution Builder Pilot (temporary fixture only, never an approved product name).
+**Test fixtures:** Isolated fixtures use these labels to verify ProjectShell-only metadata operations; they do not modify external binaries or source.
 
 ### Stage A — Isolated ProjectShell tests
 
@@ -63,9 +63,9 @@ A migration can be **partially complete** even if ProjectShell's titles are upda
 
 Tests are defined in `tests/Test-NameMigration.ps1`; verify successful Windows PowerShell 5.1/7 CI before checking these items.
 
-### Stage B — Real GitHub Package Builder naming transition (NOT DONE)
+### Stage B — Real DBP naming transition (partially completed)
 
-- [ ] Select a new public name, shortened executable name, command name, app identifier and tagline.
+- [x] Select the public name Distribution Builder Pilot (DBP). The app has a canonical dbp Python module and retains gpb aliases for backwards compatibility. Full external identity reconciliation remains a separate DBP release gate.
 - [ ] Back up the actual source, installation, manifests, settings, release automation and ProjectShell profiles.
 - [ ] Update application-owned names in a reviewable development branch; retain existing data and backward-compatible aliases/migrations.
 - [ ] Use ProjectShell's preview and approved local metadata transition; verify normal and admin shortcuts and launcher paths.

@@ -1,11 +1,14 @@
 # Changelog
 
-## Unreleased — ProjectShell v1.2.0 preview: Catalogue and migration
+## ProjectShell v1.2.0 — Catalogue, migration and session handoff
 
 - Added guided application name transition planning in Manager (16), project sessions (10) and workspace menu (9).
 - Added exact-confirmation changes to ProjectShell-owned profile/workspace labels and desktop shortcuts, with local snapshots, post-change checks and conservative rollback.
-- Added synthetic GitHub Package Builder naming pilot fixtures, optional explicit legacy aliases, and a bounded read-only source-name inventory; no rename of the real builder or automated repository/filesystem changes.
+- Added GitHub Package Builder to Distribution Builder Pilot (DBP) naming pilot, optional explicit legacy aliases, and a bounded read-only source-name inventory; no automatic external repository/filesystem rename. Fixtures remain synthetic.
 - Documented full software identity checklist for source, installer, ZIP/EXE/MSIX, GitHub distribution, legacy users and migration verification.
+
+- Export the active profile's saved start directory in the **process-local** PROJECTSHELL_START_DIRECTORY environment variable for approved child tooling, with no persistent environment changes.
+- Release ZIP and standalone Windows Setup EXE are unsigned; MSIX is a separate DBP development validation, not included as an official ProjectShell v1.2.0 artifact.
 
 ### Existing Catalogue dependency handoff
 

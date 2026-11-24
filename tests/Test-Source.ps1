@@ -33,6 +33,7 @@ $checks = @(
     @{ Name='Application profiles stored outside installation'; Pass=($app -match 'Join-Path \$env:LOCALAPPDATA') },
     @{ Name='Catalogue broker module installed'; Pass=($installer.Contains('ProjectShell.Catalogue.ps1') -and $app.Contains('. $script:CatalogueModule')) },
     @{ Name='Catalogue preview only'; Pass=($catalogue.Contains('schema_version=1') -and $catalogue.Contains('dependency-request') -and -not $catalogue.Contains('--interactive-apply') -and -not $catalogue.Contains('Start-Process')) },
+    @{ Name='Process-local ProjectShell folder handoff'; Pass=($app.Contains('function Set-ProjectShellLaunchContext') -and $app.Contains('$env:PROJECTSHELL_START_DIRECTORY') -and $app.Contains('Set-ProjectShellLaunchContext $entry') -and $workspace.Contains('Set-ProjectShellLaunchContext $Profile')) },
     @{ Name='Migration module installed'; Pass=($installer.Contains('ProjectShell.Migration.ps1') -and $app.Contains('. $script:MigrationModule')) },
     @{ Name='Migration preview, receipt and rollback'; Pass=($migration.Contains('New-ProjectNameTransitionPlan') -and $migration.Contains('Invoke-ProjectNameTransition') -and $migration.Contains('Undo-ProjectNameTransition') -and $migration.Contains('RENAME ')) },
     @{ Name='Migration bounded source inventory'; Pass=($migration.Contains('Find-ProjectNameTransitionReferences') -and $migration.Contains('Inventory limit reached')) },

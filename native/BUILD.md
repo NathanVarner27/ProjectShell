@@ -4,7 +4,7 @@
 
 The executable **is not a self-contained installer**. It must be distributed with the PowerShell scripts it launches.
 
-A **different binary**, `ProjectShell-v1.1.0-Windows-x64-Setup.exe`, is also built from the verified complete release ZIP by `scripts/build-standalone-installer.py`. That release asset **is self-contained**. Both EXEs are currently unsigned. SignPath Foundation declined ProjectShell's application on public visibility/adoption grounds; no Foundation signing is available.
+A **different binary**, `ProjectShell-v1.2.0-Windows-x64-Setup.exe`, is also built from the verified complete release ZIP by `scripts/build-standalone-installer.py`. That release asset **is self-contained**. Both EXEs are currently unsigned. SignPath Foundation declined ProjectShell's application on public visibility/adoption grounds; no Foundation signing is available.
 
 ## Build it
 
@@ -32,7 +32,7 @@ Include these files together in the extracted installation folder:
 - `ProjectShell.Migration.ps1` (local application-name migration, backup and rollback)
 - `Diagnose-Launch.ps1`
 
-Also include `README.md`, `SECURITY.md`, `CODE_SIGNING_POLICY.md`, `CHANGELOG.md`, and `LICENSE` in a public distribution package. **Do not distribute the EXE by itself.** Users should extract the complete ZIP before running the bundled launcher; the separate `ProjectShell-v1.1.0-Windows-x64-Setup.exe` release asset does not require extraction.
+Also include `README.md`, `SECURITY.md`, `CODE_SIGNING_POLICY.md`, `CHANGELOG.md`, and `LICENSE` in a public distribution package. **Do not distribute the EXE by itself.** Users should extract the complete ZIP before running the bundled launcher; the separate `ProjectShell-v1.2.0-Windows-x64-Setup.exe` release asset does not require extraction.
 
 ## Permissions and Windows testing
 

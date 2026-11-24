@@ -19,6 +19,7 @@ jobs:
           ./tests/Test-Workspaces.ps1
           ./tests/Test-CatalogueBridge.ps1
           ./tests/Test-NameMigration.ps1
+          ./tests/Test-SessionContext.ps1
 
   validate-powershell-7:
     name: PowerShell 7
@@ -33,3 +34,4 @@ jobs:
           ./tests/Test-Workspaces.ps1
           ./tests/Test-CatalogueBridge.ps1
           ./tests/Test-NameMigration.ps1
+          ./tests/Test-SessionContext.ps1

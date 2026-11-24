@@ -177,6 +177,12 @@ ProjectShell keeps your settings on your own computer:
 
 Updating ProjectShell keeps your saved profiles, workspace registry, and startup commands in place. These personal files aren't meant to go in the public GitHub repository. **Don't upload your profiles, settings, logs, backups, or personal `.lnk` files**, since they may reveal local folders or commands.
 
+### Active ProjectShell folder handoff (v1.2.0)
+
+When a ProjectShell project session starts or launches its saved tool, it passes the saved `StartDirectory` as `PROJECTSHELL_START_DIRECTORY` **in that process only**. Children such as Distribution Builder Pilot can propose the exact workspace folder even after you change directories. This is not written to persistent user/system environment settings, and ProjectShell does not expose your profile store to other applications.
+
+The application-name migration wizard changes ProjectShell-managed names and verified desktop links only. It does not move external application files or rewrite saved folder paths, launchables or startup commands; edit those separately in the Manager.
+
 ## If a shortcut isn't working
 
 From the installed ProjectShell folder, run:

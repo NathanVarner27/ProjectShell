@@ -907,6 +907,16 @@ function Set-ProjectTitle([string]$Name) {
     try { $Host.UI.RawUI.WindowTitle = $Name } catch { }
 }
 
+function Set-ProjectShellLaunchContext($entry) {
+    # Share only the user's saved starting folder with child processes.
+    # Never persist a machine/user setting or pass profiles.json to an app.
+    $folder = [string]$entry.StartDirectory
+    if (-not (Test-Path -LiteralPath $folder -PathType Container)) {
+        throw ('ProjectShell configured starting folder is missing: ' + $folder)
+    }
+    $env:PROJECTSHELL_START_DIRECTORY = [IO.Path]::GetFullPath($folder)
+}
+
 function Invoke-ProjectTask($entry) {
     Set-ProjectTitle $entry.Name
     if (-not (Test-Path -LiteralPath $entry.StartDirectory -PathType Container)) {
@@ -914,6 +924,7 @@ function Invoke-ProjectTask($entry) {
         return
     }
     Set-Location -LiteralPath $entry.StartDirectory
+    Set-ProjectShellLaunchContext $entry
     Write-Host ''
     Write-Host '============================================================' -ForegroundColor Cyan
     Write-Host (' ' + $entry.Name) -ForegroundColor Cyan
@@ -954,6 +965,7 @@ function Invoke-ProjectTask($entry) {
 function Show-OpenProjectMenu([string]$Id) {
     while ($true) {
         $entry = Get-ProfileById $Id
+        Set-ProjectShellLaunchContext $entry
         Set-ProjectTitle $entry.Name
         Write-Host ''
         Write-Host (' ' + $entry.Name + ' | SESSION MENU') -ForegroundColor Cyan

@@ -421,6 +421,7 @@ function Start-ProfileLaunchable($Profile) {
         Write-Host 'A standard profile launch cannot run from an elevated session.' -ForegroundColor Yellow
         return
     }
+    Set-ProjectShellLaunchContext $Profile
     Invoke-SavedTool (Get-ProfileLaunchable $Profile) ([string]$Profile.StartDirectory)
 }
 
