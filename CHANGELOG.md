@@ -26,7 +26,7 @@
 - Added a startup action for shortcuts that automatically runs the selected main tool.
 - Added a complete source-built Windows x64 ZIP and standalone setup EXE, including code-signing policy, security and removal documentation.
 - Added isolated Windows package/source integrity and scripted installation tests. Full interactive desktop and UAC testing remains separate.
-- Added SHA-256 checksums and free GitHub Actions artifact attestations for official main-branch builds; binaries remain Authenticode unsigned pending SignPath Foundation approval.
+- Added SHA-256 checksums and free GitHub Actions artifact attestations for official main-branch builds; binaries remain Authenticode unsigned. SignPath Foundation later declined the application for insufficient public visibility/adoption.
 
 
 ## ProjectShell v1 — Standalone CLI
