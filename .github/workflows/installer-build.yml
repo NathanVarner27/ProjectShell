@@ -60,6 +60,8 @@ jobs:
                   assert z.getinfo(filename).file_size > 0
           print('PASS: Complete ProjectShell installer ZIP')
           PY
+      - name: Check standalone bootstrap source has no trailing NUL
+        run: python3 -m unittest discover -s tests -p 'test_standalone_bootstrap_source.py' -v
       - name: Build complete standalone installer from source-built ZIP
         run: |
           python3 scripts/build-standalone-installer.py \

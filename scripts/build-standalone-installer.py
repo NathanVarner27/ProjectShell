@@ -175,7 +175,7 @@ def main() -> None:
             "Diagnose-Launch.ps1",
         }.issubset(set(z.namelist())), "Missing essential installer scripts"
     digest = hashlib.sha256(archive).hexdigest().upper()
-    bootstrap = BOOTSTRAP.replace("__SHA__", digest).encode("ascii") + b"\x00"
+    bootstrap = BOOTSTRAP.replace("__SHA__", digest).encode("ascii")
     generated = C.replace("/*EMBED_ZIP*/", c_bytes(archive)).replace(
         "/*EMBED_BOOTSTRAP*/", c_bytes(bootstrap)
     )
