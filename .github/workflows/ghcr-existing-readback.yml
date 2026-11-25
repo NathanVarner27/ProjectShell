@@ -1,0 +1,186 @@
+name: DBP ProjectShell GHCR existing artifact readback (READ ONLY)
+
+# Explicitly verifies an earlier attempted publish; never pushes, retags or changes visibility.
+# The published GHCR tag may have been created even if the original workflow's pull failed.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/ghcr-existing-readback.yml'
+      - 'tests/test_ghcr_readback_workflow.py'
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: 'Exact full SHA of original source-pinned ProjectShell CI builds'
+        required: true
+        type: string
+      installer_run_id:
+        description: 'Successful source-pinned installer CI run ID'
+        required: true
+        type: string
+      msix_run_id:
+        description: 'Successful source-pinned MSIX structural CI run ID'
+        required: true
+        type: string
+      package_tag:
+        description: 'Existing GHCR tag to READ ONLY; do not republish'
+        required: true
+        type: string
+      expected_digest:
+        description: 'Full sha256: manifest digest from prior successful ORAS push log'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  workflow-source-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python3 -m unittest discover -s tests -p 'test_ghcr_readback_workflow.py' -v
+
+  verify-existing:
+    if: github.event_name == 'workflow_dispatch'
+    needs: workflow-source-tests
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+      attestations: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      INSTALL_RUN: ${{ inputs.installer_run_id }}
+      MSIX_RUN: ${{ inputs.msix_run_id }}
+      PILOT_TAG: ${{ inputs.package_tag }}
+      EXPECTED_DIGEST: ${{ inputs.expected_digest }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Validate original CI commit, runs, and exact expected digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == 'refs/heads/main' ]] || { echo 'STOP: run from main'; exit 1; }
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'Invalid source SHA'; exit 1; }
+          [[ "$INSTALL_RUN" =~ ^[0-9]+$ && "$MSIX_RUN" =~ ^[0-9]+$ ]] || exit 1
+          [[ "$PILOT_TAG" =~ ^[a-z0-9][a-z0-9._-]{0,80}$ ]] || exit 1
+          [[ "$EXPECTED_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 1
+          [[ "$INSTALL_RUN" != "$MSIX_RUN" ]] || exit 1
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$SOURCE_SHA...$GITHUB_SHA" --jq '.status')
+          [[ "$status" == 'identical' || "$status" == 'ahead' ]] || {
+            echo 'STOP: CI source SHA is not an ancestor of audited main'
+            exit 1
+          }
+          for run in "$INSTALL_RUN" "$MSIX_RUN"; do
+            raw=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run")
+            head=$(jq -r '.head_sha' <<< "$raw")
+            branch=$(jq -r '.head_branch' <<< "$raw")
+            event=$(jq -r '.event' <<< "$raw")
+            conclusion=$(jq -r '.conclusion' <<< "$raw")
+            [[ "$head" == "$SOURCE_SHA" && "$branch" == 'main' && "$event" == 'push' && "$conclusion" == 'success' ]] || {
+              echo "CI run not source-pinned or successful: $run"
+              exit 1
+            }
+          done
+          echo 'PASS: Source SHA, original runs, digest format'
+      - name: Download previously verified CI artifacts for comparison
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/installer dist/msix
+          gh run download "$INSTALL_RUN" --repo "$GITHUB_REPOSITORY" \
+            --name 'ProjectShell-v1.2.0-release-unsigned' --dir dist/installer
+          gh run download "$MSIX_RUN" --repo "$GITHUB_REPOSITORY" \
+            --name 'ProjectShell-v1.2.0-CI-MSIX-STRUCTURAL-ONLY' --dir dist/msix
+          for file in ProjectShell-v1.2.0-Windows-x64.zip ProjectShell-v1.2.0-Windows-x64-Setup.exe; do
+            gh attestation verify "dist/installer/$file" \
+              --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/installer-build.yml" \
+              --source-ref refs/heads/main --source-digest "$SOURCE_SHA" --deny-self-hosted-runners
+          done
+          python3 scripts/prepare-ghcr-pilot.py \
+            --installer-dir dist/installer --msix-dir dist/msix \
+            --out dist/pilot --source-sha "$SOURCE_SHA"
+      - uses: oras-project/setup-oras@v2
+        with:
+          version: '1.3.6'
+      - name: Resolve original tag then pull by verified digest and compare
+        shell: bash
+        run: |
+          set -euo pipefail
+          owner=$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          base="ghcr.io/$owner/projectshell-distribution-pilot"
+          ref="$base:$PILOT_TAG"
+
+          printf '%s' "$GH_TOKEN" | oras login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          echo "READ-ONLY GHCR AUDIT: $ref"
+          echo "Expected immutable digest: $EXPECTED_DIGEST"
+
+          resolved=''
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if output=$(oras resolve "$ref" 2>&1); then
+              resolved=$(printf '%s' "$output" | tr -d '\r\n')
+              echo "Registry tag resolved on attempt $attempt: $resolved"
+              break
+            fi
+            echo "Tag lookup attempt $attempt/8 unavailable: $output"
+            if [[ "$attempt" -lt 8 ]]; then sleep 10; fi
+          done
+
+          if [[ -z "$resolved" ]]; then
+            echo 'Tag remained unreadable after retries. The original push may not have persisted or package read permissions may be missing.'
+            echo 'Read-only diagnostic: attempting immutable manifest lookup.'
+            oras manifest fetch "$base@$EXPECTED_DIGEST" >/dev/null || true
+            exit 1
+          fi
+
+          if [[ "$resolved" != "$EXPECTED_DIGEST" ]]; then
+            echo "STOP: tag digest $resolved differs from expected $EXPECTED_DIGEST"
+            exit 1
+          fi
+          echo 'PASS: Existing tag resolves to exact original upload digest'
+
+          mkdir -p dist/pulled
+          success=false
+          for attempt in 1 2 3 4 5 6; do
+            if oras pull "$base@$EXPECTED_DIGEST" -o dist/pulled; then
+              success=true
+              break
+            fi
+            echo "Digest pull attempt $attempt/6 unavailable"
+            if [[ "$attempt" -lt 6 ]]; then sleep 10; fi
+          done
+          if [[ "$success" != 'true' ]]; then
+            echo 'STOP: digest retrieval failed. Do not re-push or overwrite existing tag.'
+            exit 1
+          fi
+
+          for file in \
+            ProjectShell-v1.2.0-Windows-x64.zip \
+            ProjectShell-v1.2.0-Windows-x64-Setup.exe \
+            SHA256SUMS.txt \
+            ProjectShell-v1.2.0-CI-UNSIGNED-STRUCTURAL-ONLY.msix \
+            ci-msix-acceptance.json \
+            distribution-metadata.json; do
+            cmp "dist/pilot/$file" "dist/pulled/$file"
+          done
+
+          echo 'PASS: EXISTING GHCR PACKAGE VERIFIED WITHOUT RE-PUBLISHING'
+          echo 'PASS: All six files byte-identical to source-pinned CI distribution'
+          {
+            echo '### GHCR existing-upload readback: PASSED'
+            echo ''
+            echo "- Repository: $GITHUB_REPOSITORY"
+            echo "- Reference: $ref"
+            echo "- Verified digest: $EXPECTED_DIGEST"
+            echo '- All six files matched their independently prepared source-pinned CI copies.'
+            echo '- No package publishing, retagging, release publication or MSIX installation.'
+          } >> "$GITHUB_STEP_SUMMARY"
