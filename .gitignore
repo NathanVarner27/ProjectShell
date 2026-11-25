@@ -25,3 +25,10 @@ __pycache__/
 Install-ProjectShell.exe
 native/*.obj
 native/*.lib
+
+# Source-built CI manager and structural-preview outputs (never commit binaries)
+ProjectShell-Manager.exe
+ci-msix-stage/
+ci-manager/
+ProjectShell-v1.2.0-CI-UNSIGNED-STRUCTURAL-ONLY.msix
+ci-msix-acceptance.json
