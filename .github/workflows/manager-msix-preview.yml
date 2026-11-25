@@ -1,0 +1,70 @@
+name: ProjectShell Manager MSIX structural preview (NONPUBLISHING)
+
+# This workflow is not a release, signing, deployment, registration or Store submission.
+permissions:
+  contents: read
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-manager-from-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install LLVM for source-built Windows launcher
+        run: sudo apt-get update && sudo apt-get install -y clang lld
+      - name: Source gates for manager and nonpublishing MSIX
+        run: |
+          python3 -m unittest discover -s tests -p 'test_manager_launcher_source.py' -v
+          python3 -m unittest discover -s tests -p 'test_msix_preview_ci.py' -v
+      - name: Build source-derived unsigned Windows x64 manager
+        run: |
+          bash scripts/build-manager-launcher.sh
+          python3 scripts/check-installer-pe.py ProjectShell-Manager.exe
+      - name: Upload private CI manager executable
+        uses: actions/upload-artifact@v6
+        with:
+          name: ProjectShell-Manager-CI-unsigned
+          path: ProjectShell-Manager.exe
+          if-no-files-found: error
+
+  validate-structural-msix:
+    needs: build-manager-from-source
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v6
+        with:
+          name: ProjectShell-Manager-CI-unsigned
+          path: ci-manager
+      - name: Stage manager-based full-trust preview without installer
+        shell: pwsh
+        run: |
+          python scripts/msix_preview_ci.py stage --source . --manager ci-manager/ProjectShell-Manager.exe --stage ci-msix-stage
+          if ($LASTEXITCODE -ne 0) { throw 'MSIX staging failed' }
+      - name: Build temporary unsigned MSIX and verify contents
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sdks = @(Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -File -Filter makeappx.exe -ErrorAction Stop | Where-Object { $_.FullName -match '[\\/]x64[\\/]makeappx\.exe$' })
+          if ($sdks.Count -eq 0) { throw 'Windows SDK makeappx.exe unavailable' }
+          $makeappx = ($sdks | Sort-Object FullName -Descending | Select-Object -First 1).FullName
+          $package = Join-Path $PWD 'ProjectShell-v1.2.0-CI-UNSIGNED-STRUCTURAL-ONLY.msix'
+          & $makeappx pack /d (Join-Path $PWD 'ci-msix-stage') /p $package /no
+          if ($LASTEXITCODE -ne 0) { throw 'MakeAppx failed' }
+          python scripts/msix_preview_ci.py verify --source . --manager ci-manager/ProjectShell-Manager.exe --package $package --receipt ci-msix-acceptance.json
+          if ($LASTEXITCODE -ne 0) { throw 'MSIX verification failed' }
+      - name: Upload CI structural preview only (not official release)
+        uses: actions/upload-artifact@v6
+        with:
+          name: ProjectShell-v1.2.0-CI-MSIX-STRUCTURAL-ONLY
+          path: |
+            ProjectShell-v1.2.0-CI-UNSIGNED-STRUCTURAL-ONLY.msix
+            ci-msix-acceptance.json
+          if-no-files-found: error
