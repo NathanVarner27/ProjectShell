@@ -1,0 +1,156 @@
+name: DBP ProjectShell GHCR distribution pilot (MANUAL)
+
+# Only workflow_dispatch can prepare/publish. PRs run safe offline source tests.
+# A GHCR package is an OCI file artifact, not a runnable Docker image or Store release.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/ghcr-distribution-pilot.yml'
+      - 'scripts/prepare-ghcr-pilot.py'
+      - 'tests/test_ghcr_distribution_pilot.py'
+  workflow_dispatch:
+    inputs:
+      installer_run_id:
+        description: 'Successful main-branch Windows installer build run ID'
+        required: true
+        type: string
+      msix_run_id:
+        description: 'Successful main-branch MSIX structural preview run ID'
+        required: true
+        type: string
+      package_tag:
+        description: 'New unique GHCR pilot tag (never reuse an existing tag)'
+        required: true
+        default: 'review-1.2.0-rc1'
+        type: string
+      publish:
+        description: 'Explicitly publish test-only OCI artifact to GitHub Packages'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  source-gates:
+    name: Offline source and safety tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: GHCR payload validation tests
+        run: python3 -m unittest discover -s tests -p 'test_ghcr_distribution_pilot.py' -v
+      - name: Standalone PowerShell bootstrap source regression
+        run: python3 -m unittest discover -s tests -p 'test_standalone_bootstrap_source.py' -v
+
+  pilot:
+    name: Review and optional GHCR round-trip publication
+    if: github.event_name == 'workflow_dispatch'
+    needs: source-gates
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+      attestations: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      INSTALL_RUN: ${{ inputs.installer_run_id }}
+      MSIX_RUN: ${{ inputs.msix_run_id }}
+      PILOT_TAG: ${{ inputs.package_tag }}
+      PILOT_PUBLISH: ${{ inputs.publish }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Validate revision, exact CI runs and unique pilot tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == 'refs/heads/main' ]] || { echo 'STOP: manual pilot must run on main'; exit 1; }
+          [[ "$PILOT_TAG" =~ ^[a-z0-9][a-z0-9._-]{0,80}$ ]] || { echo 'Invalid GHCR tag'; exit 1; }
+          [[ "$INSTALL_RUN" =~ ^[0-9]+$ ]] || exit 1
+          [[ "$MSIX_RUN" =~ ^[0-9]+$ ]] || exit 1
+          [[ "$INSTALL_RUN" != "$MSIX_RUN" ]] || { echo 'Distinct CI runs expected'; exit 1; }
+          for run in "$INSTALL_RUN" "$MSIX_RUN"; do
+            head=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.head_sha')
+            branch=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.head_branch')
+            event=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.event')
+            conclusion=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.conclusion')
+            [[ "$head" == "$GITHUB_SHA" && "$branch" == 'main' && "$event" == 'push' && "$conclusion" == 'success' ]] ||
+              { echo "STOP: CI run $run is not successful main CI for exact source $GITHUB_SHA"; exit 1; }
+          done
+          echo 'PASS: Source-pinned CI run preflight'
+      - name: Download source-pinned Windows and MSIX CI outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/installer dist/msix
+          gh run download "$INSTALL_RUN" --repo "$GITHUB_REPOSITORY" \
+            --name 'ProjectShell-v1.2.0-release-unsigned' --dir dist/installer
+          gh run download "$MSIX_RUN" --repo "$GITHUB_REPOSITORY" \
+            --name 'ProjectShell-v1.2.0-CI-MSIX-STRUCTURAL-ONLY' --dir dist/msix
+      - name: Authenticate official ZIP/EXE GitHub build attestations
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in ProjectShell-v1.2.0-Windows-x64.zip ProjectShell-v1.2.0-Windows-x64-Setup.exe; do
+            gh attestation verify "dist/installer/$file" \
+              --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/installer-build.yml" \
+              --source-ref 'refs/heads/main' --source-digest "$GITHUB_SHA" --deny-self-hosted-runners
+          done
+      - name: Validate and stage exact pilot distribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/prepare-ghcr-pilot.py \
+            --installer-dir dist/installer \
+            --msix-dir dist/msix \
+            --out dist/pilot \
+            --source-sha "$GITHUB_SHA"
+          (cd dist/pilot && sha256sum -c SHA256SUMS.txt)
+      - name: Retain reviewed DBP reference distribution (no publication by default)
+        uses: actions/upload-artifact@v6
+        with:
+          name: ProjectShell-DBP-GHCR-PILOT-REVIEW-ONLY
+          path: dist/pilot/*
+          if-no-files-found: error
+      - uses: oras-project/setup-oras@v2
+        with:
+          version: '1.3.6'
+      - name: Publish only when explicitly selected; verify registry pull byte for byte
+        if: env.PILOT_PUBLISH == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          owner=$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          ref="ghcr.io/$owner/projectshell-distribution-pilot:$PILOT_TAG"
+          printf '%s' "$GH_TOKEN" | oras login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          if oras manifest fetch "$ref" >/dev/null 2>&1; then
+            echo "STOP: tag already exists. Refusing to overwrite: $ref"
+            exit 1
+          fi
+          cd dist/pilot
+          oras push "$ref" \
+            --artifact-type 'application/vnd.projectshell.distribution-pilot.v1' \
+            --annotation "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --annotation "org.opencontainers.image.revision=$GITHUB_SHA" \
+            'ProjectShell-v1.2.0-Windows-x64.zip:application/zip' \
+            'ProjectShell-v1.2.0-Windows-x64-Setup.exe:application/octet-stream' \
+            'SHA256SUMS.txt:text/plain' \
+            'ProjectShell-v1.2.0-CI-UNSIGNED-STRUCTURAL-ONLY.msix:application/octet-stream' \
+            'ci-msix-acceptance.json:application/json' \
+            'distribution-metadata.json:application/json'
+          mkdir -p "$RUNNER_TEMP/dbp-ghcr-roundtrip"
+          oras pull "$ref" -o "$RUNNER_TEMP/dbp-ghcr-roundtrip"
+          for file in ProjectShell-v1.2.0-Windows-x64.zip ProjectShell-v1.2.0-Windows-x64-Setup.exe SHA256SUMS.txt ProjectShell-v1.2.0-CI-UNSIGNED-STRUCTURAL-ONLY.msix ci-msix-acceptance.json distribution-metadata.json; do
+            cmp "$file" "$RUNNER_TEMP/dbp-ghcr-roundtrip/$file"
+          done
+          echo "PASS: GitHub Packages (GHCR) published and all 6 files byte-identical after pull"
+          echo "GHCR reference: $ref"
+          echo 'This is a test-only OCI artifact; MSIX remains unsigned/structural-only.'
