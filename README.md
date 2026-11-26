@@ -214,3 +214,25 @@ I'm listing these because they were used to build or manage the project, not bec
 Developed and maintained by **NathanVarner27** for future integration into the larger **Nathan's Ecosystem**.
 
 ProjectShell is provided under the [Apache License, Version 2.0](LICENSE). See the repository's license file for the terms.
+
+
+## ProjectShell v1.2.0
+
+ProjectShell continues to streamline accessible PowerShell
+workflows through guided, lightweight project management.
+
+### Version 1.2.0 highlights
+
+- Improved workspace and session management.
+- Configurable primary application launchables.
+- DevTools directory integration.
+- Application name transition and migration assistance.
+- Dependency discovery through Nathan's Catalogue.
+
+### Distribution development
+
+Windows ZIP, standalone EXE, and MSIX preview distributions
+are being prepared using Distribution Builder Pilot (DBP).
+
+Final distribution acceptance remains in progress.
+The unsigned MSIX is a development preview.
