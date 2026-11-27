@@ -10,6 +10,12 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
+# Use only Windows PowerShell's own built-in module directory in this child.
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    $env:PSModulePath = Join-Path $PSHOME 'Modules'
+}
+
+
 function Get-ProjectShellSha256([string]$Path) {
     $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
     try {
@@ -547,6 +553,12 @@ if ($registerManagedInstall) {
 [CmdletBinding()]
 param()
 $ErrorActionPreference = 'Stop'
+
+# Use only Windows PowerShell's own built-in module directory in this child.
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    $env:PSModulePath = Join-Path $PSHOME 'Modules'
+}
+
 
 function Get-ProjectShellSha256([string]$Path) {
     $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)

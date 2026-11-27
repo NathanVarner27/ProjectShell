@@ -141,6 +141,12 @@ BOOTSTRAP = r"""[CmdletBinding()]
 param([Parameter(Mandatory=$true)][string]$Stage,[switch]$Unattended)
 $ErrorActionPreference = 'Stop'
 
+# Use only Windows PowerShell's own built-in module directory in this child.
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    $env:PSModulePath = Join-Path $PSHOME 'Modules'
+}
+
+
 function Get-ProjectShellSha256([string]$Path) {
     $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
     try {
@@ -172,7 +178,23 @@ try {
         throw 'Embedded installer package failed SHA-256 verification.'
     }
     New-Item -ItemType Directory -Path $extract -Force | Out-Null
-    Expand-Archive -LiteralPath $bundle -DestinationPath $extract -Force
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
+    $archive = [IO.Compression.ZipFile]::OpenRead($bundle)
+    try {
+        $allowed = @('Install-ProjectShell.exe','Install-ProjectShell.ps1','ProjectShell.ps1','ProjectShell.Workspaces.ps1','ProjectShell.Catalogue.ps1','ProjectShell.Migration.ps1','Diagnose-Launch.ps1','README.md','SECURITY.md','CODE_SIGNING_POLICY.md','CHANGELOG.md','LICENSE')
+        $seen = @{}
+        if ($archive.Entries.Count -ne $allowed.Count) { throw 'Unexpected embedded ZIP entry count.' }
+        foreach ($entry in $archive.Entries) {
+            $name = $entry.FullName
+            if ($name -cnotin $allowed -or $seen.ContainsKey($name) -or $entry.Length -le 0 -or $entry.Length -gt 16777216) { throw 'Unexpected embedded ZIP entry.' }
+            $seen[$name] = $true
+        }
+        foreach ($entry in $archive.Entries) {
+            $target = Join-Path $extract $entry.FullName
+            [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $false)
+        }
+    } finally { $archive.Dispose() }
     foreach ($name in @('Install-ProjectShell.ps1','ProjectShell.ps1','ProjectShell.Workspaces.ps1','ProjectShell.Catalogue.ps1','ProjectShell.Migration.ps1','Diagnose-Launch.ps1')) {
         if (-not (Test-Path -LiteralPath (Join-Path $extract $name) -PathType Leaf)) {
             throw ('Missing required component: ' + $name)
