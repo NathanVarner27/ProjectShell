@@ -5,9 +5,86 @@ param(
     # Defaults to D:\DevTools\ProjectShell on computers with D:, otherwise
     # %LOCALAPPDATA%\Programs\ProjectShell. Can be overridden explicitly.
     [string]$InstallRoot = '',
-    [switch]$Guided
+    [switch]$Guided,
+    [switch]$Unattended
 )
 $ErrorActionPreference = 'Stop'
+
+# Use only Windows PowerShell's own built-in module directory in this child.
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    $env:PSModulePath = Join-Path $PSHOME 'Modules'
+}
+
+
+function Get-ProjectShellSha256([string]$Path) {
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    try {
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { return [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-', '') }
+        finally { $sha.Dispose() }
+    } finally { $stream.Dispose() }
+}
+
+
+function Write-CINativeDiagnostic($Failure) {
+    if ($env:GITHUB_ACTIONS -eq 'true' -and $env:RUNNER_ENVIRONMENT -eq 'github-hosted' -and $env:RUNNER_TEMP) {
+        try {
+            $folder = [IO.Path]::GetFullPath($env:LOCALAPPDATA)
+            $runner = [IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd('\') + '\'
+            if ($folder.StartsWith($runner,[StringComparison]::OrdinalIgnoreCase)) {
+                $log = Join-Path $folder 'ProjectShell-Native-Diagnostics.txt'
+                [IO.File]::AppendAllText($log, ($Failure.ToString() + [Environment]::NewLine + $Failure.ScriptStackTrace + [Environment]::NewLine))
+            }
+        } catch { }
+    }
+}
+
+trap { Write-CINativeDiagnostic $_; break }
+if ($Unattended -and $Guided) { throw 'Choose Guided or Unattended, not both.' }
+
+$registerManagedInstall = $Unattended -and [string]::IsNullOrWhiteSpace($InstallRoot)
+if ($registerManagedInstall) {
+    $managedRoot = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'Programs\ProjectShell'))
+    $managedKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ProjectShell'
+    $managedMarker = Join-Path $managedRoot '.projectshell-install.json'
+    function Assert-ManagedUnlinked([string]$Path) {
+        $current = $Path
+        while ($current) {
+            if (Test-Path -LiteralPath $current) {
+                if ((Get-Item -LiteralPath $current -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Linked managed install path refused.' }
+            }
+            $parent = [IO.Directory]::GetParent($current)
+            if ($null -eq $parent) { break }
+            $current = $parent.FullName
+        }
+    }
+    Assert-ManagedUnlinked $managedRoot
+    $managedNames = @('ProjectShell.ps1','ProjectShell.Workspaces.ps1','ProjectShell.Catalogue.ps1','ProjectShell.Migration.ps1','Install-ProjectShell.ps1','Install-ProjectShell.exe','Diagnose-Launch.ps1','README.md','Project Shell Manager.lnk','Project Shell Manager (Administrator).lnk','Uninstall-ProjectShell.ps1')
+    foreach ($name in $managedNames + @('.projectshell-install.json','README.txt')) { Assert-ManagedUnlinked (Join-Path $managedRoot $name) }
+    if (Test-Path -LiteralPath $managedKey) {
+        $prior = Get-ItemProperty -LiteralPath $managedKey
+        if ($prior.InstallLocation -ne $managedRoot -or $prior.DisplayName -ne 'ProjectShell' -or -not (Test-Path -LiteralPath $managedMarker -PathType Leaf)) { throw 'Existing uninstall registration requires manual review.' }
+        $previous = Get-Content -LiteralPath $managedMarker -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($previous.Root -ne $managedRoot -or $previous.Schema -ne 1) { throw 'Existing managed inventory requires manual review.' }
+        $seenManaged = @{}
+        foreach ($entry in @($previous.Files)) {
+            $name = [string]$entry.Name
+            if ($name -cnotin $managedNames -or $seenManaged.ContainsKey($name) -or $entry.Sha256 -notmatch '^[A-Fa-f0-9]{64}$') { throw 'Invalid existing managed inventory.' }
+            $seenManaged[$name] = $true
+            $path = Join-Path $managedRoot $name
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-ProjectShellSha256 $path) -ne $entry.Sha256) { throw ('Managed file changed: ' + $name) }
+        }
+        if (-not $seenManaged.ContainsKey('ProjectShell.ps1') -or -not $seenManaged.ContainsKey('Uninstall-ProjectShell.ps1')) { throw 'Incomplete existing managed inventory.' }
+        foreach ($name in $managedNames) { if ((Test-Path -LiteralPath (Join-Path $managedRoot $name)) -and -not $seenManaged.ContainsKey($name)) { throw 'Unowned managed filename already exists.' } }
+    } elseif (Test-Path -LiteralPath $managedRoot) {
+        # Do not take ownership of a previous manually installed copy.
+        if (@(Get-ChildItem -LiteralPath $managedRoot -Force).Count -gt 0) { throw 'Existing unmanaged install folder; review or migrate manually.' }
+    }
+}
+
+if ($Unattended -and [string]::IsNullOrWhiteSpace($InstallRoot)) {
+    $InstallRoot = Join-Path $env:LOCALAPPDATA 'Programs\ProjectShell'
+}
 # Use the same recognizable tab title as project sessions.
 try { $Host.UI.RawUI.WindowTitle = 'Project Shell | Installer' } catch { }
 
@@ -54,6 +131,7 @@ if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
     }
 }
 $installRoot = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($InstallRoot))
+if (-not $registerManagedInstall -and (Test-Path -LiteralPath (Join-Path $installRoot '.projectshell-install.json'))) { throw 'Use managed unattended setup to update this managed installation.' }
 $sourceRoot = $PSScriptRoot
 $sourceProgram = Join-Path $sourceRoot 'ProjectShell.ps1'
 $targetProgram = Join-Path $installRoot 'ProjectShell.ps1'
@@ -371,6 +449,8 @@ Write-Host '  1. Normal only [recommended]'
 Write-Host '  2. Normal AND Administrator'
 Write-Host '  3. Administrator only'
 Write-Host '  0. Skip desktop changes (existing desktop shortcuts unchanged)'
+$choice = '0'
+if (-not $Unattended) {
 $choice = ''
 do {
     $choice = (Read-Host 'Number [1]').Trim()
@@ -379,6 +459,7 @@ do {
         Write-Host 'Choose 0, 1, 2, or 3.' -ForegroundColor Yellow
     }
 } while ($choice -notin @('0','1','2','3'))
+}
 
 # These two launcher links are always maintained side-by-side in the same stable
 # installation folder, regardless of which optional desktop copies are chosen.
@@ -450,7 +531,7 @@ if (Test-Path -LiteralPath $profileStore -PathType Leaf) {
     $saved = Get-Content -LiteralPath $profileStore -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($null -eq $saved -or $null -eq $saved.Profiles) { throw 'The existing profiles.json appears invalid. Nothing was reset.' }
     $profiles = @($saved.Profiles)
-    if ($profiles.Count -gt 0) {
+    if ($profiles.Count -gt 0 -and -not $Unattended) {
         $terminalCount = @($profiles | Where-Object { [string]$_.Terminal -eq 'WindowsTerminal' }).Count
         $convertToConsole = $false
         if ($terminalCount -gt 0) {
@@ -465,6 +546,101 @@ if (Test-Path -LiteralPath $profileStore -PathType Leaf) {
     }
 }
 Write-Host ''
+
+if ($registerManagedInstall) {
+    $uninstaller = Join-Path $installRoot 'Uninstall-ProjectShell.ps1'
+    $uninstallSource = @'
+[CmdletBinding()]
+param()
+$ErrorActionPreference = 'Stop'
+
+# Use only Windows PowerShell's own built-in module directory in this child.
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    $env:PSModulePath = Join-Path $PSHOME 'Modules'
+}
+
+
+function Get-ProjectShellSha256([string]$Path) {
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    try {
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { return [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-', '') }
+        finally { $sha.Dispose() }
+    } finally { $stream.Dispose() }
+}
+
+
+function Write-CINativeDiagnostic($Failure) {
+    if ($env:GITHUB_ACTIONS -eq 'true' -and $env:RUNNER_ENVIRONMENT -eq 'github-hosted' -and $env:RUNNER_TEMP) {
+        try {
+            $folder = [IO.Path]::GetFullPath($env:LOCALAPPDATA)
+            $runner = [IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd('\') + '\'
+            if ($folder.StartsWith($runner,[StringComparison]::OrdinalIgnoreCase)) {
+                $log = Join-Path $folder 'ProjectShell-Native-Diagnostics.txt'
+                [IO.File]::AppendAllText($log, ($Failure.ToString() + [Environment]::NewLine + $Failure.ScriptStackTrace + [Environment]::NewLine))
+            }
+        } catch { }
+    }
+}
+
+trap { Write-CINativeDiagnostic $_; break }
+$root = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'Programs\ProjectShell'))
+if (-not [string]::Equals($PSScriptRoot,$root,[StringComparison]::OrdinalIgnoreCase)) { throw 'Unexpected uninstall root.' }
+function Assert-Unlinked([string]$Path) {
+    $current = $Path
+    while ($current) {
+        if (Test-Path -LiteralPath $current) {
+            if ((Get-Item -LiteralPath $current -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Linked path refused.' }
+        }
+        $parent = [IO.Directory]::GetParent($current)
+        if ($null -eq $parent) { break }
+        $current = $parent.FullName
+    }
+}
+Assert-Unlinked $root
+$key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ProjectShell'
+$registration = Get-ItemProperty -LiteralPath $key -ErrorAction Stop
+if ($registration.InstallLocation -ne $root -or $registration.DisplayName -ne 'ProjectShell') { throw 'Uninstall registration mismatch.' }
+$marker = Join-Path $root '.projectshell-install.json'
+Assert-Unlinked $marker
+$record = Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
+if ($record.Root -ne $root -or $record.Schema -ne 1) { throw 'Install inventory mismatch.' }
+$allowed = @('ProjectShell.ps1','ProjectShell.Workspaces.ps1','ProjectShell.Catalogue.ps1','ProjectShell.Migration.ps1','Install-ProjectShell.ps1','Install-ProjectShell.exe','Diagnose-Launch.ps1','README.md','Project Shell Manager.lnk','Project Shell Manager (Administrator).lnk','Uninstall-ProjectShell.ps1')
+$seen = @{}
+foreach ($entry in @($record.Files)) {
+    $name = [string]$entry.Name
+    if ($name -cnotin $allowed -or $seen.ContainsKey($name) -or $entry.Sha256 -notmatch '^[A-Fa-f0-9]{64}$') { throw 'Invalid uninstall inventory.' }
+    $seen[$name] = $true
+    $path = Join-Path $root $name
+    Assert-Unlinked $path
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-ProjectShellSha256 $path) -ne $entry.Sha256) { throw ('Installed file missing or changed: ' + $name) }
+}
+if (-not $seen.ContainsKey('Uninstall-ProjectShell.ps1') -or -not $seen.ContainsKey('ProjectShell.ps1')) { throw 'Incomplete uninstall inventory.' }
+foreach ($entry in @($record.Files)) { Remove-Item -LiteralPath (Join-Path $root $entry.Name) -Force -ErrorAction Stop }
+Remove-Item -LiteralPath $marker -Force -ErrorAction Stop
+Remove-Item -LiteralPath $key -Force -ErrorAction Stop
+if (@(Get-ChildItem -LiteralPath $root -Force).Count -eq 0) { [IO.Directory]::Delete($root,$false) }
+Write-Output 'PROJECTSHELL_UNINSTALL_PASSED'
+'@
+    Set-Content -LiteralPath $uninstaller -Value $uninstallSource -Encoding UTF8
+    $owned = @()
+    foreach ($name in $managedNames) {
+        $file = Join-Path $installRoot $name
+        Assert-ManagedUnlinked $file
+        if (Test-Path -LiteralPath $file -PathType Leaf) { $owned += @{ Name=$name; Sha256=(Get-ProjectShellSha256 $file) } }
+    }
+    @{ Schema=1; Root=$installRoot; Files=$owned } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $managedMarker -Encoding UTF8
+    $command = '"' + $systemPowerShell + '" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $uninstaller + '"'
+    $registryParent = Split-Path -Path $managedKey -Parent
+    if (-not (Test-Path -LiteralPath $registryParent)) { New-Item -Path $registryParent -ErrorAction Stop | Out-Null }
+    if (-not (Test-Path -LiteralPath $managedKey)) { New-Item -Path $managedKey -ErrorAction Stop | Out-Null }
+    foreach ($pair in @(@('DisplayName','ProjectShell'),@('DisplayVersion','1.2.0'),@('Publisher','Nathan Varner'),@('InstallLocation',$installRoot),@('UninstallString',$command),@('QuietUninstallString',$command))) {
+        New-ItemProperty -LiteralPath $managedKey -Name $pair[0] -Value $pair[1] -PropertyType String -Force | Out-Null
+    }
+    New-ItemProperty -LiteralPath $managedKey -Name NoModify -Value 1 -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -LiteralPath $managedKey -Name NoRepair -Value 1 -PropertyType DWord -Force | Out-Null
+}
+
 Write-Host 'Project Shell updated successfully.' -ForegroundColor Green
 Write-Host ('Installed program: ' + $targetProgram)
 Write-Host ('Saved profiles:     ' + $profileStore)

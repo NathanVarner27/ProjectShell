@@ -63,6 +63,7 @@ DLLIMPORT DWORD WINAPI WaitForSingleObject(HANDLE handle, DWORD milliseconds);
 DLLIMPORT BOOL WINAPI GetExitCodeProcess(HANDLE process, DWORD *exitCode);
 DLLIMPORT BOOL WINAPI CloseHandle(HANDLE handle);
 DLLIMPORT void WINAPI ExitProcess(UINT code);
+DLLIMPORT LPCWSTR WINAPI GetCommandLineW(void);
 DLLIMPORT int WINAPI MessageBoxW(HANDLE window, LPCWSTR message, LPCWSTR caption, UINT type);
 
 /* Minimal compiler-generated copies; avoids an external C runtime. */
@@ -99,12 +100,28 @@ static int append(WCHAR *target, int capacity, const WCHAR *src) {
     target[d + i] = 0;
     return 1;
 }
+
+static int dbp_mode=0;
+static int dbp_equal(const WCHAR *a,const WCHAR *b){while(*a && *a==*b){++a;++b;}return *a==*b;}
+static int dbp_parse(const WCHAR *s){
+ if(!s || !*s)return -1;
+ if(*s==L'"'){++s;while(*s && *s!=L'"')++s;if(!*s)return -1;++s;if(*s && *s!=L' ' && *s!=L'\t')return -1;}
+ else {while(*s && *s!=L' ' && *s!=L'\t')++s;}
+ while(*s==L' ' || *s==L'\t')++s;
+ if(!*s)return 0;
+ if(dbp_equal(s,L"--silent"))return 1;
+ if(dbp_equal(s,L"--silent-with-progress"))return 2;
+ return -1;
+}
+
 static void fail(LPCWSTR message, UINT exitCode) {
-    MessageBoxW(0, message, L"Project Shell Installer", MB_OK | MB_ICONERROR);
+    if(dbp_mode==0) MessageBoxW(0, message, L"Project Shell Installer", MB_OK | MB_ICONERROR);
     ExitProcess(exitCode);
 }
 
 void WINAPI InstallEntry(void) {
+    dbp_mode=dbp_parse(GetCommandLineW());
+    if(dbp_mode<0)ExitProcess(87);
     DWORD code = 1;
     int i, lastSlash = -1;
     DWORD scriptAttr;
@@ -132,16 +149,16 @@ void WINAPI InstallEntry(void) {
     }
     if (!append(command, 32768, L"\"") ||
         !append(command, 32768, powershell) ||
-        !append(command, 32768, L"\" -NoExit -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"") ||
+        !append(command, 32768, dbp_mode?L"\" -NonInteractive -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"":L"\" -NoExit -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"") ||
         !append(command, 32768, script) ||
-        !append(command, 32768, L"\" -Guided")) {
+        !append(command, 32768, dbp_mode?L"\" -Unattended":L"\" -Guided")) {
         fail(L"Installer command path is too long.", 5);
     }
 
     si.cb = (DWORD)sizeof(si);
     si.lpTitle = L"Project Shell | Installer";
     /* A separate normal console is created for numbered installer prompts. */
-    if (!CreateProcessW(powershell, command, 0, 0, 0, CREATE_NEW_CONSOLE, 0, 0, &si, &pi)) {
+    if (!CreateProcessW(powershell, command, 0, 0, 0, dbp_mode==1?0x08000000u:CREATE_NEW_CONSOLE, 0, 0, &si, &pi)) {
         fail(L"Could not launch the PowerShell installer. Check Windows security settings.", 6);
     }
     WaitForSingleObject(pi.hProcess, INFINITE);

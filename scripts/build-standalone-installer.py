@@ -57,6 +57,7 @@ DLLIMPORT BOOL WINAPI CreateProcessW(LPCWSTR,LPWSTR,void*,void*,BOOL,DWORD,void*
 DLLIMPORT DWORD WINAPI WaitForSingleObject(HANDLE,DWORD);
 DLLIMPORT BOOL WINAPI GetExitCodeProcess(HANDLE,DWORD*);
 DLLIMPORT void WINAPI ExitProcess(UINT);
+DLLIMPORT LPCWSTR WINAPI GetCommandLineW(void);
 DLLIMPORT int WINAPI MessageBoxW(HANDLE,LPCWSTR,LPCWSTR,UINT);
 __declspec(noinline) void *memcpy(void *dest,const void *src,unsigned long long n){
  volatile unsigned char *d=(volatile unsigned char*)dest;
@@ -80,8 +81,22 @@ static int slen(const WCHAR*s){int i=0;while(s[i])++i;return i;}
 static int append(WCHAR *dst,int max,const WCHAR *src){
  int i=slen(dst),j=0;while(src[j]){if(i+j+1>=max)return 0;dst[i+j]=src[j];j++;}dst[i+j]=0;return 1;
 }
+
+static int dbp_mode=0;
+static int dbp_equal(const WCHAR *a,const WCHAR *b){while(*a && *a==*b){++a;++b;}return *a==*b;}
+static int dbp_parse(const WCHAR *s){
+ if(!s || !*s)return -1;
+ if(*s==L'"'){++s;while(*s && *s!=L'"')++s;if(!*s)return -1;++s;if(*s && *s!=L' ' && *s!=L'\t')return -1;}
+ else {while(*s && *s!=L' ' && *s!=L'\t')++s;}
+ while(*s==L' ' || *s==L'\t')++s;
+ if(!*s)return 0;
+ if(dbp_equal(s,L"--silent"))return 1;
+ if(dbp_equal(s,L"--silent-with-progress"))return 2;
+ return -1;
+}
+
 static void fail(LPCWSTR message, UINT code){
- MessageBoxW(0,message,L"ProjectShell standalone installer",MB_OK|MB_ICONERROR);ExitProcess(code);
+ if(dbp_mode==0)MessageBoxW(0,message,L"ProjectShell standalone installer",MB_OK|MB_ICONERROR);ExitProcess(code);
 }
 static int put(LPCWSTR path,const unsigned char *data,DWORD count){
  DWORD written=0;
@@ -92,6 +107,8 @@ static int put(LPCWSTR path,const unsigned char *data,DWORD count){
  return ok && written==count;
 }
 void WINAPI InstallEntry(void){
+ dbp_mode=dbp_parse(GetCommandLineW());
+ if(dbp_mode<0)ExitProcess(87);
  DWORD code=1,len=GetTempPathW(512,temp);
  if(!len||len>=512)fail(L"Cannot locate the Windows temporary directory.",2);
  if(!GetTempFileNameW(temp,L"PSH",0,stage))fail(L"Cannot create the installer staging path.",3);
@@ -105,42 +122,91 @@ void WINAPI InstallEntry(void){
    fail(L"Windows PowerShell 5.1 was not found.",9);
  if(GetFileAttributesW(shell)==INVALID_FILE_ATTRIBUTES)fail(L"Cannot find Windows PowerShell 5.1.",9);
  if(!append(cmd,4096,L"\"")||!append(cmd,4096,shell)||
-    !append(cmd,4096,L"\" -NoExit -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"")||
+    !append(cmd,4096,dbp_mode?L"\" -NonInteractive -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"":L"\" -NoExit -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"")||
     !append(cmd,4096,psfile)||!append(cmd,4096,L"\" -Stage \"")||
     !append(cmd,4096,stage)||!append(cmd,4096,L"\""))fail(L"Installer command line too long.",10);
+ if(dbp_mode && !append(cmd,4096,L" -Unattended"))fail(L"Installer arguments too long.",10);
  si.cb=(DWORD)sizeof(si);
  si.lpTitle=L"ProjectShell | Standalone Setup";
- if(!CreateProcessW(shell,cmd,0,0,0,CREATE_NEW_CONSOLE,0,0,&si,&pi))
+ if(!CreateProcessW(shell,cmd,0,0,0,dbp_mode==1?0x08000000u:CREATE_NEW_CONSOLE,0,0,&si,&pi))
    fail(L"Windows could not start the PowerShell installer.",11);
  WaitForSingleObject(pi.hProcess,INFINITE);
  GetExitCodeProcess(pi.hProcess,&code);
  CloseHandle(pi.hThread);CloseHandle(pi.hProcess);
- if(code)fail(L"Installer failed. Review the PowerShell window for details.",12);
+ if(code){if(dbp_mode)ExitProcess(code);fail(L"Installer failed. Review the PowerShell window for details.",12);}
  ExitProcess(0);
 }
 """
 BOOTSTRAP = r"""[CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$Stage)
+param([Parameter(Mandatory=$true)][string]$Stage,[switch]$Unattended)
 $ErrorActionPreference = 'Stop'
+
+# Use only Windows PowerShell's own built-in module directory in this child.
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    $env:PSModulePath = Join-Path $PSHOME 'Modules'
+}
+
+
+function Get-ProjectShellSha256([string]$Path) {
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    try {
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { return [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-', '') }
+        finally { $sha.Dispose() }
+    } finally { $stream.Dispose() }
+}
+
+
+function Write-CINativeDiagnostic($Failure) {
+    if ($env:GITHUB_ACTIONS -eq 'true' -and $env:RUNNER_ENVIRONMENT -eq 'github-hosted' -and $env:RUNNER_TEMP) {
+        try {
+            $folder = [IO.Path]::GetFullPath($env:LOCALAPPDATA)
+            $runner = [IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd('\') + '\'
+            if ($folder.StartsWith($runner,[StringComparison]::OrdinalIgnoreCase)) {
+                $log = Join-Path $folder 'ProjectShell-Native-Diagnostics.txt'
+                [IO.File]::AppendAllText($log, ($Failure.ToString() + [Environment]::NewLine + $Failure.ScriptStackTrace + [Environment]::NewLine))
+            }
+        } catch { }
+    }
+}
+
 $bundle = Join-Path $Stage 'ProjectShell.zip'
 $extract = Join-Path $Stage 'Contents'
 try {
     $expected = '__SHA__'
-    if ((Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash -ne $expected) {
+    if ((Get-ProjectShellSha256 $bundle) -ne $expected) {
         throw 'Embedded installer package failed SHA-256 verification.'
     }
     New-Item -ItemType Directory -Path $extract -Force | Out-Null
-    Expand-Archive -LiteralPath $bundle -DestinationPath $extract -Force
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
+    $archive = [IO.Compression.ZipFile]::OpenRead($bundle)
+    try {
+        $allowed = @('Install-ProjectShell.exe','Install-ProjectShell.ps1','ProjectShell.ps1','ProjectShell.Workspaces.ps1','ProjectShell.Catalogue.ps1','ProjectShell.Migration.ps1','Diagnose-Launch.ps1','README.md','SECURITY.md','CODE_SIGNING_POLICY.md','CHANGELOG.md','LICENSE')
+        $seen = @{}
+        if ($archive.Entries.Count -ne $allowed.Count) { throw 'Unexpected embedded ZIP entry count.' }
+        foreach ($entry in $archive.Entries) {
+            $name = $entry.FullName
+            if ($name -cnotin $allowed -or $seen.ContainsKey($name) -or $entry.Length -le 0 -or $entry.Length -gt 16777216) { throw 'Unexpected embedded ZIP entry.' }
+            $seen[$name] = $true
+        }
+        foreach ($entry in $archive.Entries) {
+            $target = Join-Path $extract $entry.FullName
+            [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $false)
+        }
+    } finally { $archive.Dispose() }
     foreach ($name in @('Install-ProjectShell.ps1','ProjectShell.ps1','ProjectShell.Workspaces.ps1','ProjectShell.Catalogue.ps1','ProjectShell.Migration.ps1','Diagnose-Launch.ps1')) {
         if (-not (Test-Path -LiteralPath (Join-Path $extract $name) -PathType Leaf)) {
             throw ('Missing required component: ' + $name)
         }
     }
     Write-Host 'PROJECTSHELL | STANDALONE INSTALLER' -ForegroundColor Cyan
-    & (Join-Path $extract 'Install-ProjectShell.ps1') -Guided
+    if ($Unattended) { & (Join-Path $extract 'Install-ProjectShell.ps1') -Unattended }
+    else { & (Join-Path $extract 'Install-ProjectShell.ps1') -Guided }
     Write-Host 'Installer finished. Close this console when ready.' -ForegroundColor Green
 }
 catch {
+    Write-CINativeDiagnostic $_
     Write-Host ('PROJECTSHELL ERROR: ' + $_.Exception.Message) -ForegroundColor Red
     exit 1
 }

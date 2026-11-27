@@ -112,3 +112,7 @@ jobs:
         shell: pwsh
         run: |
           ./tests/Test-Installer-Sandbox.ps1 -ZipPath "release-assets/ProjectShell-v1.2.0-Windows-x64.zip"
+      - name: Test native unattended installation and registered uninstall
+        shell: pwsh
+        run: |
+          ./tests/Test-Native-Unattended.ps1 -ZipPath "release-assets/ProjectShell-v1.2.0-Windows-x64.zip" -SetupPath "release-assets/ProjectShell-v1.2.0-Windows-x64-Setup.exe"
