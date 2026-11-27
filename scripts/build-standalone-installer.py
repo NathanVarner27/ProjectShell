@@ -141,6 +141,16 @@ BOOTSTRAP = r"""[CmdletBinding()]
 param([Parameter(Mandatory=$true)][string]$Stage,[switch]$Unattended)
 $ErrorActionPreference = 'Stop'
 
+function Get-ProjectShellSha256([string]$Path) {
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    try {
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { return [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-', '') }
+        finally { $sha.Dispose() }
+    } finally { $stream.Dispose() }
+}
+
+
 function Write-CINativeDiagnostic($Failure) {
     if ($env:GITHUB_ACTIONS -eq 'true' -and $env:RUNNER_ENVIRONMENT -eq 'github-hosted' -and $env:RUNNER_TEMP) {
         try {
@@ -158,7 +168,7 @@ $bundle = Join-Path $Stage 'ProjectShell.zip'
 $extract = Join-Path $Stage 'Contents'
 try {
     $expected = '__SHA__'
-    if ((Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash -ne $expected) {
+    if ((Get-ProjectShellSha256 $bundle) -ne $expected) {
         throw 'Embedded installer package failed SHA-256 verification.'
     }
     New-Item -ItemType Directory -Path $extract -Force | Out-Null

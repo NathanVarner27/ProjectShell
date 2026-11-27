@@ -10,6 +10,16 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
+function Get-ProjectShellSha256([string]$Path) {
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    try {
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { return [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-', '') }
+        finally { $sha.Dispose() }
+    } finally { $stream.Dispose() }
+}
+
+
 function Write-CINativeDiagnostic($Failure) {
     if ($env:GITHUB_ACTIONS -eq 'true' -and $env:RUNNER_ENVIRONMENT -eq 'github-hosted' -and $env:RUNNER_TEMP) {
         try {
@@ -56,7 +66,7 @@ if ($registerManagedInstall) {
             if ($name -cnotin $managedNames -or $seenManaged.ContainsKey($name) -or $entry.Sha256 -notmatch '^[A-Fa-f0-9]{64}$') { throw 'Invalid existing managed inventory.' }
             $seenManaged[$name] = $true
             $path = Join-Path $managedRoot $name
-            if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $entry.Sha256) { throw ('Managed file changed: ' + $name) }
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-ProjectShellSha256 $path) -ne $entry.Sha256) { throw ('Managed file changed: ' + $name) }
         }
         if (-not $seenManaged.ContainsKey('ProjectShell.ps1') -or -not $seenManaged.ContainsKey('Uninstall-ProjectShell.ps1')) { throw 'Incomplete existing managed inventory.' }
         foreach ($name in $managedNames) { if ((Test-Path -LiteralPath (Join-Path $managedRoot $name)) -and -not $seenManaged.ContainsKey($name)) { throw 'Unowned managed filename already exists.' } }
@@ -538,6 +548,16 @@ if ($registerManagedInstall) {
 param()
 $ErrorActionPreference = 'Stop'
 
+function Get-ProjectShellSha256([string]$Path) {
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    try {
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { return [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-', '') }
+        finally { $sha.Dispose() }
+    } finally { $stream.Dispose() }
+}
+
+
 function Write-CINativeDiagnostic($Failure) {
     if ($env:GITHUB_ACTIONS -eq 'true' -and $env:RUNNER_ENVIRONMENT -eq 'github-hosted' -and $env:RUNNER_TEMP) {
         try {
@@ -581,7 +601,7 @@ foreach ($entry in @($record.Files)) {
     $seen[$name] = $true
     $path = Join-Path $root $name
     Assert-Unlinked $path
-    if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $entry.Sha256) { throw ('Installed file missing or changed: ' + $name) }
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-ProjectShellSha256 $path) -ne $entry.Sha256) { throw ('Installed file missing or changed: ' + $name) }
 }
 if (-not $seen.ContainsKey('Uninstall-ProjectShell.ps1') -or -not $seen.ContainsKey('ProjectShell.ps1')) { throw 'Incomplete uninstall inventory.' }
 foreach ($entry in @($record.Files)) { Remove-Item -LiteralPath (Join-Path $root $entry.Name) -Force -ErrorAction Stop }
@@ -595,7 +615,7 @@ Write-Output 'PROJECTSHELL_UNINSTALL_PASSED'
     foreach ($name in $managedNames) {
         $file = Join-Path $installRoot $name
         Assert-ManagedUnlinked $file
-        if (Test-Path -LiteralPath $file -PathType Leaf) { $owned += @{ Name=$name; Sha256=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash } }
+        if (Test-Path -LiteralPath $file -PathType Leaf) { $owned += @{ Name=$name; Sha256=(Get-ProjectShellSha256 $file) } }
     }
     @{ Schema=1; Root=$installRoot; Files=$owned } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $managedMarker -Encoding UTF8
     $command = '"' + $systemPowerShell + '" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $uninstaller + '"'
