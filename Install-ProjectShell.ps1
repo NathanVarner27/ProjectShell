@@ -5,9 +5,14 @@ param(
     # Defaults to D:\DevTools\ProjectShell on computers with D:, otherwise
     # %LOCALAPPDATA%\Programs\ProjectShell. Can be overridden explicitly.
     [string]$InstallRoot = '',
-    [switch]$Guided
+    [switch]$Guided,
+    [switch]$Unattended
 )
 $ErrorActionPreference = 'Stop'
+if ($Unattended -and $Guided) { throw 'Choose Guided or Unattended, not both.' }
+if ($Unattended -and [string]::IsNullOrWhiteSpace($InstallRoot)) {
+    $InstallRoot = Join-Path $env:LOCALAPPDATA 'Programs\ProjectShell'
+}
 # Use the same recognizable tab title as project sessions.
 try { $Host.UI.RawUI.WindowTitle = 'Project Shell | Installer' } catch { }
 
@@ -371,6 +376,8 @@ Write-Host '  1. Normal only [recommended]'
 Write-Host '  2. Normal AND Administrator'
 Write-Host '  3. Administrator only'
 Write-Host '  0. Skip desktop changes (existing desktop shortcuts unchanged)'
+$choice = '0'
+if (-not $Unattended) {
 $choice = ''
 do {
     $choice = (Read-Host 'Number [1]').Trim()
@@ -379,6 +386,7 @@ do {
         Write-Host 'Choose 0, 1, 2, or 3.' -ForegroundColor Yellow
     }
 } while ($choice -notin @('0','1','2','3'))
+}
 
 # These two launcher links are always maintained side-by-side in the same stable
 # installation folder, regardless of which optional desktop copies are chosen.
@@ -450,7 +458,7 @@ if (Test-Path -LiteralPath $profileStore -PathType Leaf) {
     $saved = Get-Content -LiteralPath $profileStore -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($null -eq $saved -or $null -eq $saved.Profiles) { throw 'The existing profiles.json appears invalid. Nothing was reset.' }
     $profiles = @($saved.Profiles)
-    if ($profiles.Count -gt 0) {
+    if ($profiles.Count -gt 0 -and -not $Unattended) {
         $terminalCount = @($profiles | Where-Object { [string]$_.Terminal -eq 'WindowsTerminal' }).Count
         $convertToConsole = $false
         if ($terminalCount -gt 0) {
