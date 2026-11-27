@@ -1,6 +1,7 @@
 LIBRARY KERNEL32.dll
 EXPORTS
   GetModuleFileNameW
+  GetCommandLineW
   GetSystemDirectoryW
   GetTempPathW
   GetTempFileNameW

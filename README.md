@@ -127,9 +127,24 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\Install-ProjectShell.
 
 Extract the newer official package, run its installer, and choose the **same installation folder** you used previously. ProjectShell updates application scripts and its shortcuts while preserving saved local data under `%LOCALAPPDATA%\ProjectShell` (including `profiles.json`, `settings.json`, and `workspaces.json`). If prompted, review changes to existing project shortcuts before accepting them. The DevTools workspace root is a separate setting and does not have to match the application installation folder.
 
+
+### Unattended native installation (per-user)
+
+The native launcher and standalone Setup EXE accept exactly `--silent` or
+`--silent-with-progress`. Both install to `%LOCALAPPDATA%\Programs\ProjectShell`,
+without requesting elevation, changing desktop shortcuts or refreshing profiles. The latter
+shows a progress console. Unknown arguments fail without installing.
+The per-user Apps & Features entry registers an unattended uninstaller that
+removes only unchanged inventoried application files; user data and unrelated
+files are preserved. An existing unmanaged installation or modified managed
+files require manual review. Interactive installation and explicit script
+installation paths retain their existing behavior and are not automatically
+registered. The managed uninstaller does not delete the saved workspace or
+profile directory.
+
 ### Uninstall ProjectShell (manual, user-controlled)
 
-ProjectShell currently **does not register a Windows Apps & Features uninstaller**. To uninstall it safely:
+For interactive or explicitly located script installations without a registered uninstaller, remove ProjectShell safely as follows:
 
 1. **Close** the ProjectShell Manager and any ProjectShell-launched sessions. Record your chosen installation folder if it differs from the recommended locations.
 2. **Remove ProjectShell desktop shortcuts** you created, including `Project Shell Manager.lnk`, `Project Shell Manager (Administrator).lnk`, and any project shortcuts you want removed. For a custom project shortcut, check **Properties → Target** and verify it references ProjectShell before deleting it. If your desktop is redirected, check that location.

@@ -57,6 +57,7 @@ DLLIMPORT BOOL WINAPI CreateProcessW(LPCWSTR,LPWSTR,void*,void*,BOOL,DWORD,void*
 DLLIMPORT DWORD WINAPI WaitForSingleObject(HANDLE,DWORD);
 DLLIMPORT BOOL WINAPI GetExitCodeProcess(HANDLE,DWORD*);
 DLLIMPORT void WINAPI ExitProcess(UINT);
+DLLIMPORT LPCWSTR WINAPI GetCommandLineW(void);
 DLLIMPORT int WINAPI MessageBoxW(HANDLE,LPCWSTR,LPCWSTR,UINT);
 __declspec(noinline) void *memcpy(void *dest,const void *src,unsigned long long n){
  volatile unsigned char *d=(volatile unsigned char*)dest;
@@ -80,8 +81,22 @@ static int slen(const WCHAR*s){int i=0;while(s[i])++i;return i;}
 static int append(WCHAR *dst,int max,const WCHAR *src){
  int i=slen(dst),j=0;while(src[j]){if(i+j+1>=max)return 0;dst[i+j]=src[j];j++;}dst[i+j]=0;return 1;
 }
+
+static int dbp_mode=0;
+static int dbp_equal(const WCHAR *a,const WCHAR *b){while(*a && *a==*b){++a;++b;}return *a==*b;}
+static int dbp_parse(const WCHAR *s){
+ if(!s || !*s)return -1;
+ if(*s==L'"'){++s;while(*s && *s!=L'"')++s;if(!*s)return -1;++s;if(*s && *s!=L' ' && *s!=L'\t')return -1;}
+ else {while(*s && *s!=L' ' && *s!=L'\t')++s;}
+ while(*s==L' ' || *s==L'\t')++s;
+ if(!*s)return 0;
+ if(dbp_equal(s,L"--silent"))return 1;
+ if(dbp_equal(s,L"--silent-with-progress"))return 2;
+ return -1;
+}
+
 static void fail(LPCWSTR message, UINT code){
- MessageBoxW(0,message,L"ProjectShell standalone installer",MB_OK|MB_ICONERROR);ExitProcess(code);
+ if(dbp_mode==0)MessageBoxW(0,message,L"ProjectShell standalone installer",MB_OK|MB_ICONERROR);ExitProcess(code);
 }
 static int put(LPCWSTR path,const unsigned char *data,DWORD count){
  DWORD written=0;
@@ -92,6 +107,8 @@ static int put(LPCWSTR path,const unsigned char *data,DWORD count){
  return ok && written==count;
 }
 void WINAPI InstallEntry(void){
+ dbp_mode=dbp_parse(GetCommandLineW());
+ if(dbp_mode<0)ExitProcess(87);
  DWORD code=1,len=GetTempPathW(512,temp);
  if(!len||len>=512)fail(L"Cannot locate the Windows temporary directory.",2);
  if(!GetTempFileNameW(temp,L"PSH",0,stage))fail(L"Cannot create the installer staging path.",3);
@@ -105,22 +122,23 @@ void WINAPI InstallEntry(void){
    fail(L"Windows PowerShell 5.1 was not found.",9);
  if(GetFileAttributesW(shell)==INVALID_FILE_ATTRIBUTES)fail(L"Cannot find Windows PowerShell 5.1.",9);
  if(!append(cmd,4096,L"\"")||!append(cmd,4096,shell)||
-    !append(cmd,4096,L"\" -NoExit -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"")||
+    !append(cmd,4096,dbp_mode?L"\" -NonInteractive -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"":L"\" -NoExit -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"")||
     !append(cmd,4096,psfile)||!append(cmd,4096,L"\" -Stage \"")||
     !append(cmd,4096,stage)||!append(cmd,4096,L"\""))fail(L"Installer command line too long.",10);
+ if(dbp_mode && !append(cmd,4096,L" -Unattended"))fail(L"Installer arguments too long.",10);
  si.cb=(DWORD)sizeof(si);
  si.lpTitle=L"ProjectShell | Standalone Setup";
- if(!CreateProcessW(shell,cmd,0,0,0,CREATE_NEW_CONSOLE,0,0,&si,&pi))
+ if(!CreateProcessW(shell,cmd,0,0,0,dbp_mode==1?0x08000000u:CREATE_NEW_CONSOLE,0,0,&si,&pi))
    fail(L"Windows could not start the PowerShell installer.",11);
  WaitForSingleObject(pi.hProcess,INFINITE);
  GetExitCodeProcess(pi.hProcess,&code);
  CloseHandle(pi.hThread);CloseHandle(pi.hProcess);
- if(code)fail(L"Installer failed. Review the PowerShell window for details.",12);
+ if(code){if(dbp_mode)ExitProcess(code);fail(L"Installer failed. Review the PowerShell window for details.",12);}
  ExitProcess(0);
 }
 """
 BOOTSTRAP = r"""[CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$Stage)
+param([Parameter(Mandatory=$true)][string]$Stage,[switch]$Unattended)
 $ErrorActionPreference = 'Stop'
 $bundle = Join-Path $Stage 'ProjectShell.zip'
 $extract = Join-Path $Stage 'Contents'
@@ -137,7 +155,8 @@ try {
         }
     }
     Write-Host 'PROJECTSHELL | STANDALONE INSTALLER' -ForegroundColor Cyan
-    & (Join-Path $extract 'Install-ProjectShell.ps1') -Guided
+    if ($Unattended) { & (Join-Path $extract 'Install-ProjectShell.ps1') -Unattended }
+    else { & (Join-Path $extract 'Install-ProjectShell.ps1') -Guided }
     Write-Host 'Installer finished. Close this console when ready.' -ForegroundColor Green
 }
 catch {
