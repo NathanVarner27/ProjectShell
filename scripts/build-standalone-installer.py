@@ -140,6 +140,20 @@ void WINAPI InstallEntry(void){
 BOOTSTRAP = r"""[CmdletBinding()]
 param([Parameter(Mandatory=$true)][string]$Stage,[switch]$Unattended)
 $ErrorActionPreference = 'Stop'
+
+function Write-CINativeDiagnostic($Failure) {
+    if ($env:GITHUB_ACTIONS -eq 'true' -and $env:RUNNER_ENVIRONMENT -eq 'github-hosted' -and $env:RUNNER_TEMP) {
+        try {
+            $folder = [IO.Path]::GetFullPath($env:LOCALAPPDATA)
+            $runner = [IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd('\') + '\'
+            if ($folder.StartsWith($runner,[StringComparison]::OrdinalIgnoreCase)) {
+                $log = Join-Path $folder 'ProjectShell-Native-Diagnostics.txt'
+                [IO.File]::AppendAllText($log, ($Failure.ToString() + [Environment]::NewLine + $Failure.ScriptStackTrace + [Environment]::NewLine))
+            }
+        } catch { }
+    }
+}
+
 $bundle = Join-Path $Stage 'ProjectShell.zip'
 $extract = Join-Path $Stage 'Contents'
 try {
@@ -160,6 +174,7 @@ try {
     Write-Host 'Installer finished. Close this console when ready.' -ForegroundColor Green
 }
 catch {
+    Write-CINativeDiagnostic $_
     Write-Host ('PROJECTSHELL ERROR: ' + $_.Exception.Message) -ForegroundColor Red
     exit 1
 }

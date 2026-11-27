@@ -9,6 +9,21 @@ param(
     [switch]$Unattended
 )
 $ErrorActionPreference = 'Stop'
+
+function Write-CINativeDiagnostic($Failure) {
+    if ($env:GITHUB_ACTIONS -eq 'true' -and $env:RUNNER_ENVIRONMENT -eq 'github-hosted' -and $env:RUNNER_TEMP) {
+        try {
+            $folder = [IO.Path]::GetFullPath($env:LOCALAPPDATA)
+            $runner = [IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd('\') + '\'
+            if ($folder.StartsWith($runner,[StringComparison]::OrdinalIgnoreCase)) {
+                $log = Join-Path $folder 'ProjectShell-Native-Diagnostics.txt'
+                [IO.File]::AppendAllText($log, ($Failure.ToString() + [Environment]::NewLine + $Failure.ScriptStackTrace + [Environment]::NewLine))
+            }
+        } catch { }
+    }
+}
+
+trap { Write-CINativeDiagnostic $_; break }
 if ($Unattended -and $Guided) { throw 'Choose Guided or Unattended, not both.' }
 
 $registerManagedInstall = $Unattended -and [string]::IsNullOrWhiteSpace($InstallRoot)
@@ -22,9 +37,9 @@ if ($registerManagedInstall) {
             if (Test-Path -LiteralPath $current) {
                 if ((Get-Item -LiteralPath $current -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Linked managed install path refused.' }
             }
-            $parent = Split-Path -Path $current -Parent
-            if ($parent -eq $current) { break }
-            $current = $parent
+            $parent = [IO.Directory]::GetParent($current)
+            if ($null -eq $parent) { break }
+            $current = $parent.FullName
         }
     }
     Assert-ManagedUnlinked $managedRoot
@@ -522,6 +537,21 @@ if ($registerManagedInstall) {
 [CmdletBinding()]
 param()
 $ErrorActionPreference = 'Stop'
+
+function Write-CINativeDiagnostic($Failure) {
+    if ($env:GITHUB_ACTIONS -eq 'true' -and $env:RUNNER_ENVIRONMENT -eq 'github-hosted' -and $env:RUNNER_TEMP) {
+        try {
+            $folder = [IO.Path]::GetFullPath($env:LOCALAPPDATA)
+            $runner = [IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd('\') + '\'
+            if ($folder.StartsWith($runner,[StringComparison]::OrdinalIgnoreCase)) {
+                $log = Join-Path $folder 'ProjectShell-Native-Diagnostics.txt'
+                [IO.File]::AppendAllText($log, ($Failure.ToString() + [Environment]::NewLine + $Failure.ScriptStackTrace + [Environment]::NewLine))
+            }
+        } catch { }
+    }
+}
+
+trap { Write-CINativeDiagnostic $_; break }
 $root = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'Programs\ProjectShell'))
 if (-not [string]::Equals($PSScriptRoot,$root,[StringComparison]::OrdinalIgnoreCase)) { throw 'Unexpected uninstall root.' }
 function Assert-Unlinked([string]$Path) {
@@ -530,9 +560,9 @@ function Assert-Unlinked([string]$Path) {
         if (Test-Path -LiteralPath $current) {
             if ((Get-Item -LiteralPath $current -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Linked path refused.' }
         }
-        $parent = Split-Path -Path $current -Parent
-        if ($parent -eq $current) { break }
-        $current = $parent
+        $parent = [IO.Directory]::GetParent($current)
+        if ($null -eq $parent) { break }
+        $current = $parent.FullName
     }
 }
 Assert-Unlinked $root
@@ -569,7 +599,9 @@ Write-Output 'PROJECTSHELL_UNINSTALL_PASSED'
     }
     @{ Schema=1; Root=$installRoot; Files=$owned } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $managedMarker -Encoding UTF8
     $command = '"' + $systemPowerShell + '" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $uninstaller + '"'
-    New-Item -Path $managedKey -Force | Out-Null
+    $registryParent = Split-Path -Path $managedKey -Parent
+    if (-not (Test-Path -LiteralPath $registryParent)) { New-Item -Path $registryParent -ErrorAction Stop | Out-Null }
+    if (-not (Test-Path -LiteralPath $managedKey)) { New-Item -Path $managedKey -ErrorAction Stop | Out-Null }
     foreach ($pair in @(@('DisplayName','ProjectShell'),@('DisplayVersion','1.2.0'),@('Publisher','Nathan Varner'),@('InstallLocation',$installRoot),@('UninstallString',$command),@('QuietUninstallString',$command))) {
         New-ItemProperty -LiteralPath $managedKey -Name $pair[0] -Value $pair[1] -PropertyType String -Force | Out-Null
     }

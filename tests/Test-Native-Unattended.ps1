@@ -15,6 +15,7 @@ $profileFile = Join-Path $data 'ProjectShell\profiles.json'
 Set-Content -LiteralPath $profileFile -Value '{"Profiles":[{"Id":"native-ci","Terminal":"WindowsTerminal"}]}' -Encoding UTF8
 $profileHash = (Get-FileHash -LiteralPath $profileFile).Hash
 function Invoke-Bounded([string]$File,[string]$Arguments,[int]$Expected=0) {
+    Write-Host ('Native test: ' + [IO.Path]::GetFileName($File) + ' ' + $Arguments)
     $si = New-Object Diagnostics.ProcessStartInfo
     $si.FileName = $File
     $si.Arguments = $Arguments
@@ -23,11 +24,18 @@ function Invoke-Bounded([string]$File,[string]$Arguments,[int]$Expected=0) {
     $p = [Diagnostics.Process]::Start($si)
     try {
         if (-not $p.WaitForExit(120000)) { $p.Kill(); throw 'Native process timed out.' }
-        if ($p.ExitCode -ne $Expected) { throw ('Unexpected exit: '+$p.ExitCode+' from '+$File) }
+        if ($p.ExitCode -ne $Expected) {
+            $diagnostic = Join-Path $data 'ProjectShell-Native-Diagnostics.txt'
+            if (Test-Path -LiteralPath $diagnostic -PathType Leaf) { Get-Content -LiteralPath $diagnostic | Write-Host }
+            throw ('Unexpected exit: '+$p.ExitCode+' from '+$File+' args '+$Arguments)
+        }
     } finally { $p.Dispose() }
 }
 try {
     Expand-Archive -LiteralPath $ZipPath -DestinationPath $package
+    $tokens = $null; $parseErrors = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path $package 'Install-ProjectShell.ps1'),[ref]$tokens,[ref]$parseErrors)
+    if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
     $launchers = @((Join-Path $package 'Install-ProjectShell.exe'),(Resolve-Path -LiteralPath $SetupPath).Path)
     foreach ($launcher in $launchers) {
         Invoke-Bounded $launcher '--unknown' 87
